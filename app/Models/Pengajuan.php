@@ -38,4 +38,24 @@ class Pengajuan extends Model
     {
         return $this->belongsTo(StatusPengajuan::class, 'id_status', 'id_status');
     }
+    public function verifikasi()
+    {
+        return $this->hasMany(Verifikasi::class, 'id_pengajuan', 'id_pengajuan');
+    }
+    public function ppk()
+    {
+        return $this->hasMany(Ppk::class, 'id_pengajuan', 'id_pengajuan');
+    }
+
+    public function bendahara()
+    {
+        return $this->hasMany(Bendahara::class, 'id_pengajuan', 'id_pengajuan');
+    }
+
+    public function ppspm()
+    {
+        return $this->hasMany(Ppspm::class, 'id_pengajuan', 'id_pengajuan');
+    }
+    
+    
 }

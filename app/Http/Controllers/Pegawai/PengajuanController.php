@@ -63,7 +63,7 @@ class PengajuanController extends Controller
 
     public function show(Pengajuan $pengajuan): View
     {
-        $pengajuan->load('status', 'pemohon');
+        $pengajuan->load(['status', 'pemohon']);
         Gate::authorize('view', $pengajuan);
 
         $timeline = $this->buildTimeline($pengajuan);
@@ -143,21 +143,21 @@ class PengajuanController extends Controller
                 'kode_status' => 'DIAJUKAN',
                 'nama_status' => 'Diajukan',
                 'catatan' => $pengajuan->catatan_pengaju,
-                'aktor' => $pengajuan->pemohon?->nama_lengkap,
+                'aktor' => $pengajuan->pemohon?->name,
             ],
         ]);
 
         $verifikasi = DB::table('verifikasi as v')
-            ->join('status_verifikasi as s', 's.id_status_verifikasi', '=', 'v.id_status_verifikasi')
-            ->join('users as u', 'u.id_user', '=', 'v.id_verifikator')
+            ->join('status_verifikasi as s', 's.id', '=', 'v.id_status_verifikasi')
+            ->join('users as u', 'u.id', '=', 'v.id_verifikator')
             ->where('v.id_pengajuan', $pengajuan->id_pengajuan)
             ->select([
                 'v.tanggal_verifikasi as waktu',
                 'v.tahap',
                 'v.catatan',
-                's.kode_status',
-                's.nama_status',
-                'u.nama_lengkap as aktor',
+                's.kode as kode_status',
+                's.nama as nama_status',
+                'u.name as aktor',
             ])
             ->get()
             ->map(fn ($item) => [
@@ -179,14 +179,14 @@ class PengajuanController extends Controller
             $idColumn = 'id_' . $table;
 
             $rows = DB::table("{$table} as p")
-                ->join('status_pencairan as s', 's.id_status_pencairan', '=', 'p.id_status')
+                ->join('status_pencairan as s', 's.id', '=', 'p.id_status')
                 ->where('p.id_pengajuan', $pengajuan->id_pengajuan)
                 ->select([
                     "p.{$idColumn}",
                     'p.tanggal_proses as waktu',
                     'p.catatan',
-                    's.kode_status',
-                    's.nama_status',
+                    's.kode as kode_status',
+                    's.nama as nama_status',
                 ])
                 ->get()
                 ->map(fn ($item) => [
