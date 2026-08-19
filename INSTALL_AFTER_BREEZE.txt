@@ -1,0 +1,16 @@
+SPJ Monitoring BPS - Post Breeze Patch (Laravel 10)
+
+IMPORTANT:
+1. Do NOT delete or replace the whole app/ directory.
+2. Extract this patch to a temporary folder, then merge/copy its CONTENTS into the project root.
+3. Existing Laravel/Breeze files not present in this patch must remain.
+4. This patch intentionally does NOT include app/Http/Kernel.php.
+
+After copying, manually add this alias inside app/Http/Kernel.php -> $middlewareAliases:
+    'role' => \\App\\Http\\Middleware\\RoleMiddleware::class,
+
+Then run:
+    php artisan route:clear
+    php artisan route:list
+
+Expected: pegawai.* and admin.users.* routes appear, and public register route is gone.
