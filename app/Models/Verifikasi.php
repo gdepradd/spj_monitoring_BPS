@@ -12,6 +12,8 @@ class Verifikasi extends Model
     protected $table = 'verifikasi';
     protected $primaryKey = 'id_verifikasi';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'id_pengajuan',
         'id_verifikator',
@@ -23,16 +25,28 @@ class Verifikasi extends Model
 
     public function pengajuan()
     {
-        return $this->belongsTo(Pengajuan::class, 'id_pengajuan', 'id_pengajuan');
+        return $this->belongsTo(
+            Pengajuan::class,
+            'id_pengajuan',
+            'id_pengajuan'
+        );
     }
 
     public function verifikator()
     {
-        return $this->belongsTo(User::class, 'id_verifikator', 'id');
+        return $this->belongsTo(
+            User::class,
+            'id_verifikator',
+            'id_user'
+        );
     }
 
     public function statusVerifikasi()
     {
-        return $this->belongsTo(StatusVerifikasi::class, 'id_status_verifikasi', 'id');
+        return $this->belongsTo(
+            StatusVerifikasi::class,
+            'id_status_verifikasi',
+            'id_status_verifikasi'
+        );
     }
 }

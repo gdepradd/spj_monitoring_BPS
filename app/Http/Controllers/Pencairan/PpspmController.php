@@ -22,26 +22,90 @@ class PpspmController extends Controller
         return view('ppspm.dashboard', compact('totalMenunggu'));
     }
 
-    public function index()
-    {
-        $pengajuan = Pengajuan::with('user')->where('id_status', 9)->get();
-        return view('ppspm.pengajuan.index', compact('pengajuan'));
+   public function index()
+{
+    $pengajuan = Pengajuan::with([
+        'pemohon',
+        'status',
+    ])
+        ->where('id_status', 9)
+        ->orderBy('tanggal_pengajuan', 'asc')
+        ->get();
+
+    return view(
+        'ppspm.pengajuan.index',
+        compact('pengajuan')
+    );
+}
+
+public function show($id)
+{
+    $pengajuan = Pengajuan::with([
+        'pemohon',
+        'status',
+        'verifikasi' => function ($query) {
+            $query->orderBy('tahap');
+        },
+        'verifikasi.verifikator',
+        'verifikasi.statusVerifikasi',
+    ])->findOrFail($id);
+
+    if ((int) $pengajuan->id_status !== 9) {
+        abort(403, 'Bukan wewenang PPSPM.');
     }
 
-    public function show($id)
-    {
-        $pengajuan = Pengajuan::with(['user', 'bendahara'])->findOrFail($id);
-        if ($pengajuan->id_status != 9) abort(403);
+    $ppk = \App\Models\Ppk::with('statusPencairan')
+        ->where('id_pengajuan', $pengajuan->id_pengajuan)
+        ->latest('id_ppk')
+        ->first();
 
-        return view('ppspm.pengajuan.show', compact('pengajuan'));
+    $bendahara = \App\Models\Bendahara::with('statusPencairan')
+        ->where('id_pengajuan', $pengajuan->id_pengajuan)
+        ->latest('id_bendahara')
+        ->first();
+
+    return view(
+        'ppspm.pengajuan.show',
+        compact(
+            'pengajuan',
+            'ppk',
+            'bendahara'
+        )
+    );
+}
+
+   public function keputusan(Request $request, $id)
+{
+    $pengajuan = Pengajuan::findOrFail($id);
+
+    // Hanya boleh diproses jika memang sedang di tahap PPSPM
+    if ((int) $pengajuan->id_status !== 9) {
+        abort(403, 'Pengajuan ini tidak berada pada tahap PPSPM.');
     }
 
-    public function selesai(Request $request, $id)
-    {
-        $pengajuan = Pengajuan::findOrFail($id);
-        $data = ['id_status_pencairan' => 4, 'catatan' => $request->catatan]; // Asumsi 4 = Selesai PPSPM
-        $this->pencairanService->prosesPpspm($pengajuan, $data);
+    $data = $request->validate([
+        'id_status_pencairan' => [
+            'required',
+            'in:2,3',
+        ],
 
-        return redirect()->route('ppspm.pengajuan.index')->with('success', 'Arsip PPSPM selesai.');
-    }
+        'catatan' => [
+            'nullable',
+            'required_if:id_status_pencairan,3',
+        ],
+    ]);
+
+    $this->pencairanService->prosesPpspm(
+        $pengajuan,
+        $data
+    );
+
+    // Jangan kembali ke halaman show pengajuan yang statusnya sudah berubah.
+    return redirect()
+        ->route('ppspm.dashboard')
+        ->with(
+            'success',
+            'Keputusan PPSPM berhasil disimpan.'
+        );
+}
 }

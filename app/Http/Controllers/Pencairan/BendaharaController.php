@@ -22,26 +22,79 @@ class BendaharaController extends Controller
         return view('bendahara.dashboard', compact('totalMenunggu'));
     }
 
-    public function index()
-    {
-        $pengajuan = Pengajuan::with('user')->where('id_status', 8)->get();
-        return view('bendahara.pengajuan.index', compact('pengajuan'));
+   public function index()
+{
+    $pengajuan = Pengajuan::with([
+        'pemohon',
+        'status',
+    ])
+        ->where('id_status', 8)
+        ->orderBy('tanggal_pengajuan')
+        ->get();
+
+    return view(
+        'bendahara.pengajuan.index',
+        compact('pengajuan')
+    );
+}
+
+   public function show($id)
+{
+    $pengajuan = Pengajuan::with([
+        'pemohon',
+        'status',
+        'verifikasi' => function ($query) {
+            $query->orderBy('tahap');
+        },
+        'verifikasi.verifikator',
+        'verifikasi.statusVerifikasi',
+    ])->findOrFail($id);
+
+    if ($pengajuan->id_status != 8) {
+        abort(403, 'Bukan wewenang Bendahara.');
     }
 
-    public function show($id)
-    {
-        $pengajuan = Pengajuan::with(['user', 'ppk'])->findOrFail($id);
-        if ($pengajuan->id_status != 8) abort(403);
+    $ppk = \App\Models\Ppk::with('statusPencairan')
+        ->where('id_pengajuan', $pengajuan->id_pengajuan)
+        ->latest('id_ppk')
+        ->first();
 
-        return view('bendahara.pengajuan.show', compact('pengajuan'));
+    return view(
+        'bendahara.pengajuan.show',
+        compact('pengajuan', 'ppk')
+    );
+}
+
+   public function keputusan(Request $request, $id)
+{
+    $pengajuan = Pengajuan::findOrFail($id);
+
+    if ($pengajuan->id_status != 8) {
+        abort(403, 'Bukan wewenang Bendahara.');
     }
 
-    public function selesai(Request $request, $id)
-    {
-        $pengajuan = Pengajuan::findOrFail($id);
-        $data = ['id_status_pencairan' => 3, 'catatan' => $request->catatan]; // Asumsi 3 = Selesai Bendahara
-        $this->pencairanService->prosesBendahara($pengajuan, $data);
+    $data = $request->validate([
+        'id_status_pencairan' => [
+            'required',
+            'in:2,3',
+        ],
 
-        return redirect()->route('bendahara.pengajuan.index')->with('success', 'Pembayaran diproses.');
-    }
+        'catatan' => [
+            'nullable',
+            'required_if:id_status_pencairan,3',
+        ],
+    ]);
+
+    $this->pencairanService->prosesBendahara(
+        $pengajuan,
+        $data
+    );
+
+    return redirect()
+        ->route('bendahara.dashboard')
+        ->with(
+            'success',
+            'Keputusan Bendahara berhasil disimpan.'
+        );
+}
 }

@@ -11,6 +11,7 @@ class Ppspm extends Model
 
     protected $table = 'ppspm';
     protected $primaryKey = 'id_ppspm';
+    public $timestamps = false;
 
     protected $fillable = [
         'id_pengajuan',
@@ -19,6 +20,8 @@ class Ppspm extends Model
         'catatan',
     ];
 
+    
+
     public function pengajuan()
     {
         return $this->belongsTo(Pengajuan::class, 'id_pengajuan', 'id_pengajuan');
@@ -26,6 +29,10 @@ class Ppspm extends Model
 
     public function statusPencairan()
     {
-        return $this->belongsTo(StatusPencairan::class, 'id_status', 'id');
+        return $this->belongsTo(
+            StatusPencairan::class,
+            'id_status',
+            'id_status_pencairan'
+        );
     }
 }

@@ -12,19 +12,31 @@ class DashboardController extends Controller
 {
     $urutan = auth()->user()->urutan_verifikator;
 
-    $query = Pengajuan::query();
+    $query = Pengajuan::with([
+        'pemohon',
+        'status',
+    ]);
 
     if ($urutan == 1) {
-        // Verifikator 1 membaca DIAJUKAN (1) dan VERIFIKASI_1 (2)
         $query->whereIn('id_status', [1, 2]);
     } elseif ($urutan == 2) {
-        $query->where('id_status', 3); // VERIFIKASI_2
+        $query->where('id_status', 3);
     } elseif ($urutan == 3) {
-        $query->where('id_status', 4); // VERIFIKASI_3
+        $query->where('id_status', 4);
+    } else {
+        $query->whereRaw('1 = 0');
     }
 
-    $totalMenunggu = $query->count();
+    $pengajuan = $query
+        ->orderBy('tanggal_pengajuan', 'asc')
+        ->get();
 
-    return view('verifikator.dashboard', compact('totalMenunggu', 'urutan'));
+    $totalMenunggu = $pengajuan->count();
+
+    return view('verifikator.dashboard', compact(
+        'pengajuan',
+        'totalMenunggu',
+        'urutan'
+    ));
 }
 }

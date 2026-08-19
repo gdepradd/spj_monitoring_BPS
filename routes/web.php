@@ -23,7 +23,10 @@ Route::middleware(['auth', 'role:bendahara'])->prefix('bendahara')->name('bendah
     Route::get('/dashboard', [BendaharaController::class, 'dashboard'])->name('dashboard');
     Route::get('/pengajuan', [BendaharaController::class, 'index'])->name('pengajuan.index');
     Route::get('/pengajuan/{id}', [BendaharaController::class, 'show'])->name('pengajuan.show');
-    Route::post('/pengajuan/{id}/selesai', [BendaharaController::class, 'selesai'])->name('pengajuan.selesai');
+    Route::post(
+    '/pengajuan/{id}/keputusan',
+    [BendaharaController::class, 'keputusan']
+)->name('pengajuan.keputusan');
 });
 
 // PPSPM
@@ -31,7 +34,10 @@ Route::middleware(['auth', 'role:ppspm'])->prefix('ppspm')->name('ppspm.')->grou
     Route::get('/dashboard', [PpspmController::class, 'dashboard'])->name('dashboard');
     Route::get('/pengajuan', [PpspmController::class, 'index'])->name('pengajuan.index');
     Route::get('/pengajuan/{id}', [PpspmController::class, 'show'])->name('pengajuan.show');
-    Route::post('/pengajuan/{id}/selesai', [PpspmController::class, 'selesai'])->name('pengajuan.selesai');
+   Route::post(
+    '/pengajuan/{id}/keputusan',
+    [PpspmController::class, 'keputusan']
+)->name('pengajuan.keputusan');
 });
 Route::get('/', function () {
     if (! auth()->check()) {

@@ -12,6 +12,8 @@ class Ppk extends Model
     protected $table = 'ppk';
     protected $primaryKey = 'id_ppk';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'id_pengajuan',
         'tanggal_proses',
@@ -21,11 +23,19 @@ class Ppk extends Model
 
     public function pengajuan()
     {
-        return $this->belongsTo(Pengajuan::class, 'id_pengajuan', 'id_pengajuan');
+        return $this->belongsTo(
+            Pengajuan::class,
+            'id_pengajuan',
+            'id_pengajuan'
+        );
     }
 
     public function statusPencairan()
     {
-        return $this->belongsTo(StatusPencairan::class, 'id_status', 'id');
+        return $this->belongsTo(
+            StatusPencairan::class,
+            'id_status',
+            'id_status_pencairan'
+        );
     }
 }

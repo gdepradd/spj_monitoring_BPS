@@ -134,75 +134,101 @@ class PengajuanController extends Controller
         return $prefix . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
 
-    private function buildTimeline(Pengajuan $pengajuan): Collection
-    {
-        $items = collect([
-            [
-                'waktu' => $pengajuan->created_at,
-                'judul' => 'Pengajuan dibuat',
-                'kode_status' => 'DIAJUKAN',
-                'nama_status' => 'Diajukan',
-                'catatan' => $pengajuan->catatan_pengaju,
-                'aktor' => $pengajuan->pemohon?->name,
-            ],
+   private function buildTimeline(Pengajuan $pengajuan): Collection
+{
+    $items = collect([
+        [
+            'waktu' => $pengajuan->created_at,
+            'judul' => 'Pengajuan dibuat',
+            'kode_status' => 'DIAJUKAN',
+            'nama_status' => 'Diajukan',
+            'catatan' => $pengajuan->catatan_pengaju,
+            'aktor' => $pengajuan->pemohon?->nama_lengkap,
+        ],
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Timeline Verifikasi
+    |--------------------------------------------------------------------------
+    */
+    $verifikasi = DB::table('verifikasi as v')
+        ->join(
+            'status_verifikasi as s',
+            's.id_status_verifikasi',
+            '=',
+            'v.id_status_verifikasi'
+        )
+        ->join(
+            'users as u',
+            'u.id_user',
+            '=',
+            'v.id_verifikator'
+        )
+        ->where('v.id_pengajuan', $pengajuan->id_pengajuan)
+        ->select([
+            'v.tanggal_verifikasi as waktu',
+            'v.tahap',
+            'v.catatan',
+            's.kode_status as kode_status',
+            's.nama_status as nama_status',
+            'u.nama_lengkap as aktor',
+        ])
+        ->get()
+        ->map(fn ($item) => [
+            'waktu' => $item->waktu,
+            'judul' => 'Verifikasi Tahap ' . $item->tahap,
+            'kode_status' => $item->kode_status,
+            'nama_status' => $item->nama_status,
+            'catatan' => $item->catatan,
+            'aktor' => $item->aktor,
         ]);
 
-        $verifikasi = DB::table('verifikasi as v')
-            ->join('status_verifikasi as s', 's.id', '=', 'v.id_status_verifikasi')
-            ->join('users as u', 'u.id', '=', 'v.id_verifikator')
-            ->where('v.id_pengajuan', $pengajuan->id_pengajuan)
+    $items = $items->concat($verifikasi);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Timeline Pencairan
+    |--------------------------------------------------------------------------
+    */
+    foreach ([
+        'ppk' => 'PPK',
+        'bendahara' => 'Bendahara',
+        'ppspm' => 'PPSPM',
+    ] as $table => $label) {
+
+        $idColumn = 'id_' . $table;
+
+        $rows = DB::table("{$table} as p")
+            ->join(
+                'status_pencairan as s',
+                's.id_status_pencairan',
+                '=',
+                'p.id_status'
+            )
+            ->where('p.id_pengajuan', $pengajuan->id_pengajuan)
             ->select([
-                'v.tanggal_verifikasi as waktu',
-                'v.tahap',
-                'v.catatan',
-                's.kode as kode_status',
-                's.nama as nama_status',
-                'u.name as aktor',
+                "p.{$idColumn}",
+                'p.tanggal_proses as waktu',
+                'p.catatan',
+                's.kode_status as kode_status',
+                's.nama_status as nama_status',
             ])
             ->get()
             ->map(fn ($item) => [
                 'waktu' => $item->waktu,
-                'judul' => 'Verifikasi Tahap ' . $item->tahap,
+                'judul' => 'Proses ' . $label,
                 'kode_status' => $item->kode_status,
                 'nama_status' => $item->nama_status,
                 'catatan' => $item->catatan,
-                'aktor' => $item->aktor,
+                'aktor' => $label,
             ]);
 
-        $items = $items->concat($verifikasi);
-
-        foreach ([
-            'ppk' => 'PPK',
-            'bendahara' => 'Bendahara',
-            'ppspm' => 'PPSPM',
-        ] as $table => $label) {
-            $idColumn = 'id_' . $table;
-
-            $rows = DB::table("{$table} as p")
-                ->join('status_pencairan as s', 's.id', '=', 'p.id_status')
-                ->where('p.id_pengajuan', $pengajuan->id_pengajuan)
-                ->select([
-                    "p.{$idColumn}",
-                    'p.tanggal_proses as waktu',
-                    'p.catatan',
-                    's.kode as kode_status',
-                    's.nama as nama_status',
-                ])
-                ->get()
-                ->map(fn ($item) => [
-                    'waktu' => $item->waktu,
-                    'judul' => 'Proses ' . $label,
-                    'kode_status' => $item->kode_status,
-                    'nama_status' => $item->nama_status,
-                    'catatan' => $item->catatan,
-                    'aktor' => $label,
-                ]);
-
-            $items = $items->concat($rows);
-        }
-
-        return $items
-            ->sortBy(fn ($item) => (string) ($item['waktu'] ?? ''))
-            ->values();
+        $items = $items->concat($rows);
     }
+
+    return $items
+        ->sortBy(fn ($item) => (string) ($item['waktu'] ?? ''))
+        ->values();
+}
 }
