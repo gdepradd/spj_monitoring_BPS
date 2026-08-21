@@ -3,41 +3,108 @@
 namespace App\Services;
 
 use App\Models\Pengajuan;
+use App\Models\StatusPengajuan;
+use App\Models\StatusVerifikasi;
 use App\Models\Verifikasi;
 use Illuminate\Support\Facades\DB;
 
 class VerifikasiService
 {
-    public function prosesKeputusan(Pengajuan $pengajuan, array $data, int $tahapVerifikator)
-    {
-        return DB::transaction(function () use ($pengajuan, $data, $tahapVerifikator) {
-            // 1. Catat ke tabel verifikasi
+    public function prosesKeputusan(
+        Pengajuan $pengajuan,
+        array $data,
+        int $tahapVerifikator
+    ): Pengajuan {
+        return DB::transaction(function () use (
+            $pengajuan,
+            $data,
+            $tahapVerifikator
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ambil status keputusan berdasarkan ID yang dikirim form
+            |--------------------------------------------------------------------------
+            */
+            $statusVerifikasi = StatusVerifikasi::findOrFail(
+                $data['id_status_verifikasi']
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Simpan riwayat verifikasi
+            |--------------------------------------------------------------------------
+            */
             Verifikasi::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
                 'id_verifikator' => auth()->id(),
                 'tahap' => $tahapVerifikator,
                 'tanggal_verifikasi' => now(),
-                'id_status_verifikasi' => $data['id_status_verifikasi'],
+                'id_status_verifikasi' => $statusVerifikasi->id_status_verifikasi,
                 'catatan' => $data['catatan'] ?? null,
             ]);
 
-            // 2. Tentukan ID status pengajuan berikutnya
-            // Asumsi ID Status Verifikasi: 1 = ACC, 2 = REVISI, 3 = TOLAK (sesuaikan dengan tabel status_verifikasi)
-            $nextStatus = match ((int) $data['id_status_verifikasi']) {
-                1 => match ($tahapVerifikator) { // ACC
-                    1 => 3, // Lanjut ke VERIFIKASI_2
-                    2 => 4, // Lanjut ke VERIFIKASI_3
-                    3 => 7, // Lanjut ke PROSES_PPK
+            /*
+            |--------------------------------------------------------------------------
+            | Tentukan status pengajuan berikutnya berdasarkan KODE
+            |--------------------------------------------------------------------------
+            */
+            $kodeStatusBerikutnya = match ($statusVerifikasi->kode_status) {
+
+                'ACC' => match ($tahapVerifikator) {
+                    1 => 'VERIFIKASI_2',
+                    2 => 'VERIFIKASI_3',
+
+                    /*
+                     * PERUBAHAN ISSUE BARU:
+                     *
+                     * Dulu:
+                     * Verifikator 3 ACC → PROSES_PPK
+                     *
+                     * Sekarang:
+                     * Verifikator 3 ACC → MENUNGGU_PENCAIRAN
+                     *
+                     * Bendahara menjadi pintu masuk proses pencairan.
+                     */
+                    3 => 'MENUNGGU_PENCAIRAN',
+
+                    default => throw new \InvalidArgumentException(
+                        'Tahap verifikator tidak valid.'
+                    ),
                 },
-                2 => 5, // REVISI
-                3 => 6, // DITOLAK
+
+                'REVISI' => 'REVISI',
+
+                'TOLAK' => 'DITOLAK',
+
+                default => throw new \InvalidArgumentException(
+                    'Keputusan verifikasi tidak valid.'
+                ),
             };
 
+            /*
+            |--------------------------------------------------------------------------
+            | Ambil ID status dari tabel status_pengajuan
+            |--------------------------------------------------------------------------
+            |
+            | Tidak menggunakan hardcoded ID 2,3,4,7, dst.
+            |
+            */
+            $statusPengajuan = StatusPengajuan::where(
+                'kode_status',
+                $kodeStatusBerikutnya
+            )->firstOrFail();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update status global pengajuan
+            |--------------------------------------------------------------------------
+            */
             $pengajuan->update([
-                'id_status' => $nextStatus
+                'id_status' => $statusPengajuan->id_status,
             ]);
 
-            return $pengajuan;
+            return $pengajuan->fresh('status');
         });
     }
 }

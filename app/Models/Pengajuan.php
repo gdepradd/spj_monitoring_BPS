@@ -12,6 +12,7 @@ class Pengajuan extends Model
 
     protected $table = 'pengajuan';
     protected $primaryKey = 'id_pengajuan';
+    
 
     protected $fillable = [
         'no_pengajuan',
@@ -21,6 +22,7 @@ class Pengajuan extends Model
         'keterangan',
         'total_nominal',
         'id_status',
+        'metode_pembayaran',
         'catatan_pengaju',
     ];
 
@@ -40,22 +42,44 @@ class Pengajuan extends Model
     }
     public function verifikasi()
     {
-        return $this->hasMany(Verifikasi::class, 'id_pengajuan', 'id_pengajuan');
+        return $this->hasMany(
+                Verifikasi::class,
+                'id_pengajuan',
+                'id_pengajuan'
+            );    
     }
     public function ppk()
     {
-        return $this->hasMany(Ppk::class, 'id_pengajuan', 'id_pengajuan');
+        return $this->hasMany(
+                Ppk::class,
+                'id_pengajuan',
+                'id_pengajuan'
+        );    
     }
 
     public function bendahara()
     {
-        return $this->hasMany(Bendahara::class, 'id_pengajuan', 'id_pengajuan');
+        return $this->hasMany(
+                Bendahara::class,
+                'id_pengajuan',
+                'id_pengajuan'
+            );   
     }
 
     public function ppspm()
     {
-        return $this->hasMany(Ppspm::class, 'id_pengajuan', 'id_pengajuan');
+        return $this->hasMany(
+                Ppspm::class,
+                'id_pengajuan',
+                'id_pengajuan'
+            );    
     }
+    
+    public function isTahapAktif(string $kodeStatus): bool
+    {
+        return $this->status?->kode_status === $kodeStatus;
+    }
+
     
     
 }

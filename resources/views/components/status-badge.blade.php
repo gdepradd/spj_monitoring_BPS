@@ -1,22 +1,71 @@
-@props(['kode', 'label' => null])
+@props([
+    'status' => null,
+    'aktif' => false,
+])
 
 @php
-    $approved = ['ACC', 'SESUAI'];
-    $revision = ['REVISI'];
-    $rejected = ['DITOLAK', 'TOLAK', 'TIDAK_SESUAI'];
-    $done = ['SELESAI'];
-    $neutral = ['DRAFT'];
+    /*
+    |--------------------------------------------------------------------------
+    | Ambil kode status
+    |--------------------------------------------------------------------------
+    |
+    | $status bisa:
+    | - null
+    | - object model StatusVerifikasi / StatusPencairan
+    | - string kode status
+    |
+    */
 
-    $class = match (true) {
-        in_array($kode, $approved, true) => 'bg-status-approved/10 text-status-approved border-status-approved/20',
-        in_array($kode, $revision, true) => 'bg-status-revisi/10 text-status-revisi border-status-revisi/20',
-        in_array($kode, $rejected, true) => 'bg-status-rejected/10 text-status-rejected border-status-rejected/20',
-        in_array($kode, $done, true) => 'bg-status-done/10 text-status-done border-status-done/20',
-        in_array($kode, $neutral, true) => 'bg-status-neutral/10 text-status-neutral border-status-neutral/20',
-        default => 'bg-status-pending/10 text-status-pending border-status-pending/20',
-    };
+    if (is_object($status)) {
+        $kode = $status->kode_status ?? null;
+    } else {
+        $kode = $status;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tentukan state timeline
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$kode) {
+        if ($aktif) {
+            $label = 'Sedang Diproses';
+            $class = 'bg-amber-100 text-amber-700 border-amber-200';
+        } else {
+            $label = 'Belum Dimulai';
+            $class = 'bg-gray-100 text-gray-600 border-gray-200';
+        }
+    } elseif (in_array($kode, ['ACC', 'SESUAI'])) {
+        $label = 'Disetujui';
+        $class = 'bg-green-100 text-green-700 border-green-200';
+    } elseif ($kode === 'SELESAI') {
+        $label = 'Selesai';
+        $class = 'bg-green-100 text-green-700 border-green-200';
+    } elseif ($kode === 'REVISI') {
+        $label = 'Revisi';
+        $class = 'bg-orange-100 text-orange-700 border-orange-200';
+    } elseif (in_array($kode, ['TOLAK', 'DITOLAK', 'TIDAK_SESUAI'])) {
+        $label = 'Ditolak';
+        $class = 'bg-red-100 text-red-700 border-red-200';
+    } elseif ($kode === 'MENUNGGU') {
+        if ($aktif) {
+            $label = 'Sedang Diproses';
+            $class = 'bg-amber-100 text-amber-700 border-amber-200';
+        } else {
+            $label = 'Belum Dimulai';
+            $class = 'bg-gray-100 text-gray-600 border-gray-200';
+        }
+    } else {
+        $label = is_object($status) ? $status->nama_status ?? $kode : $kode;
+
+        $class = 'bg-gray-100 text-gray-600 border-gray-200';
+    }
 @endphp
 
-<span {{ $attributes->merge(['class' => "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {$class}"]) }}>
-    {{ $label ?? str($kode)->replace('_', ' ')->title() }}
+<span
+    {{ $attributes->merge([
+        'class' => 'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ' . $class,
+    ]) }}>
+    {{ $label }}
 </span>

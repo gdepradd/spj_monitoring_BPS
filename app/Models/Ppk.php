@@ -2,22 +2,23 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Ppk extends Model
 {
-    use HasFactory;
-
     protected $table = 'ppk';
+
     protected $primaryKey = 'id_ppk';
 
     public $timestamps = false;
 
     protected $fillable = [
         'id_pengajuan',
+        'id_user',
         'tanggal_proses',
         'id_status',
+        'no_spm',
+        'tgl_spm',
         'catatan',
     ];
 
@@ -27,6 +28,15 @@ class Ppk extends Model
             Pengajuan::class,
             'id_pengajuan',
             'id_pengajuan'
+        );
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(
+            User::class,
+            'id_user',
+            'id_user'
         );
     }
 

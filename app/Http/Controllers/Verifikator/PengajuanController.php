@@ -38,92 +38,108 @@ class PengajuanController extends Controller
     }
 
     public function show($id)
+    {
+        $pengajuan = Pengajuan::with([
+            'pemohon',
+            'status',
+
+            'verifikasi' => function ($query) {
+                $query->orderBy('tahap');
+            },
+
+            'verifikasi.verifikator',
+            'verifikasi.statusVerifikasi',
+        ])->findOrFail($id);
+
+        $urutan = (int) auth()->user()->urutan_verifikator;
+
+        $kodeStatusYangDiizinkan = match ($urutan) {
+            1 => ['DIAJUKAN', 'VERIFIKASI_1'],
+            2 => ['VERIFIKASI_2'],
+            3 => ['VERIFIKASI_3'],
+            default => [],
+        };
+
+        if (!in_array(
+            $pengajuan->status?->kode_status,
+            $kodeStatusYangDiizinkan,
+            true
+        )) {
+            abort(
+                403,
+                'Pengajuan ini tidak berada pada tahap verifikasi Anda.'
+            );
+        }
+
+        return view(
+            'verifikator.pengajuan.show',
+            compact('pengajuan')
+        );
+    }
+
+    public function keputusan(Request $request, $id)
 {
-    $pengajuan = Pengajuan::with([
-        'pemohon',
-        'verifikasi.verifikator',
-        'verifikasi.statusVerifikasi'
-    ])->findOrFail($id);
+    $pengajuan = Pengajuan::findOrFail($id);
 
-    $urutan = auth()->user()->urutan_verifikator;
+    $tahapVerifikator = (int) auth()->user()->urutan_verifikator;
 
-    $allowedStatus = match ($urutan) {
-        1 => [1, 2],
-        2 => [3],
-        3 => [4],
+    /*
+    |--------------------------------------------------------------------------
+    | Pastikan pengajuan memang sedang berada pada tahap verifikator ini
+    |--------------------------------------------------------------------------
+    */
+    $kodeStatusYangDiizinkan = match ($tahapVerifikator) {
+        1 => ['DIAJUKAN', 'VERIFIKASI_1'],
+        2 => ['VERIFIKASI_2'],
+        3 => ['VERIFIKASI_3'],
         default => [],
     };
 
-    if (! in_array($pengajuan->id_status, $allowedStatus)) {
-        abort(403, 'Pengajuan ini tidak berada pada tahap verifikasi Anda.');
+    $pengajuan->load('status');
+
+    if (!in_array(
+        $pengajuan->status?->kode_status,
+        $kodeStatusYangDiizinkan,
+        true
+    )) {
+        abort(
+            403,
+            'Pengajuan ini tidak berada pada tahap verifikasi Anda.'
+        );
     }
 
-    $timeline = collect([
-        [
-            'waktu' => $pengajuan->created_at,
-            'judul' => 'Pengajuan dibuat',
-            'nama_status' => 'Diajukan',
-            'catatan' => $pengajuan->catatan_pengaju,
-            'aktor' => $pengajuan->pemohon?->nama_lengkap ?? 'Pegawai',
+    $request->validate([
+        'id_status_verifikasi' => [
+            'required',
+            'exists:status_verifikasi,id_status_verifikasi',
+        ],
+
+        /*
+         * 3 = REVISI
+         * 4 = TOLAK
+         */
+        'catatan' => [
+            'nullable',
+            'required_if:id_status_verifikasi,3,4',
         ],
     ]);
 
-    $verifikasi = DB::table('verifikasi as v')
-        ->join(
-            'status_verifikasi as s',
-            's.id_status_verifikasi',
-            '=',
-            'v.id_status_verifikasi'
-        )
-        ->join(
-            'users as u',
-            'u.id_user',
-            '=',
-            'v.id_verifikator'
-        )
-        ->where('v.id_pengajuan', $pengajuan->id_pengajuan)
-        ->select([
-            'v.tanggal_verifikasi as waktu',
-            'v.tahap',
-            'v.catatan',
-            's.kode_status',
-            's.nama_status',
-            'u.nama_lengkap as aktor',
-        ])
-        ->get()
-        ->map(fn ($item) => [
-            'waktu' => $item->waktu,
-            'judul' => 'Verifikasi Tahap ' . $item->tahap,
-            'nama_status' => $item->nama_status,
-            'catatan' => $item->catatan,
-            'aktor' => $item->aktor,
-        ]);
-
-    $timeline = $timeline
-        ->concat($verifikasi)
-        ->sortBy('waktu')
-        ->values();
-
-    return view(
-        'verifikator.pengajuan.show',
-        compact('pengajuan', 'timeline')
+    $this->verifikasiService->prosesKeputusan(
+        $pengajuan,
+        $request->only([
+            'id_status_verifikasi',
+            'catatan',
+        ]),
+        $tahapVerifikator
     );
+
+    return redirect()
+        ->route('verifikator.pengajuan.index')
+        ->with(
+            'success',
+            'Keputusan verifikasi berhasil disimpan.'
+        );
 }
-
-    public function keputusan(Request $request, $id)
-    {
-        $request->validate([
-            'id_status_verifikasi' => 'required|exists:status_verifikasi,id_status_verifikasi',
-            'catatan' => 'required_if:id_status_verifikasi,2,3', // 2: REVISI, 3: TOLAK (Sesuaikan ID-nya)
-        ]);
-
-        $pengajuan = Pengajuan::findOrFail($id);
-        $tahapVerifikator = auth()->user()->urutan_verifikator;
-
-        $this->verifikasiService->prosesKeputusan($pengajuan, $request->all(), $tahapVerifikator);
-
-        return redirect()->route('verifikator.pengajuan.index')->with('success', 'Keputusan berhasil disimpan.');
-    }
 
     public function riwayat()
     {

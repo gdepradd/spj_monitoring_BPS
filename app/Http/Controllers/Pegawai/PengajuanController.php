@@ -9,7 +9,6 @@ use App\Models\Pengajuan;
 use App\Models\StatusPengajuan;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -17,91 +16,289 @@ use Illuminate\Validation\ValidationException;
 
 class PengajuanController extends Controller
 {
-    public function index(): View
-    {
-        $query = Pengajuan::query()
-            ->with('status')
-            ->where('id_user', Auth::id())
-            ->latest('created_at');
+    /*
+    |--------------------------------------------------------------------------
+    | Daftar Pengajuan Pegawai
+    |--------------------------------------------------------------------------
+    */
+    public function index()
+{
+    $urutan = (int) auth()->user()->urutan_verifikator;
 
-        if ($kodeStatus = request('status')) {
-            $query->whereHas('status', fn ($q) => $q->where('kode_status', $kodeStatus));
-        }
+    $kodeStatusYangDiizinkan = match ($urutan) {
+        1 => ['DIAJUKAN', 'VERIFIKASI_1'],
+        2 => ['VERIFIKASI_2'],
+        3 => ['VERIFIKASI_3'],
+        default => [],
+    };
 
-        $pengajuan = $query->paginate(10)->withQueryString();
-        $statusList = StatusPengajuan::orderBy('urutan')->get();
+    $pengajuan = Pengajuan::query()
+        ->with([
+            'pemohon',
+            'status',
+        ])
+        ->whereHas('status', function ($query) use ($kodeStatusYangDiizinkan) {
+            $query->whereIn(
+                'kode_status',
+                $kodeStatusYangDiizinkan
+            );
+        })
+        ->orderBy('tanggal_pengajuan', 'asc')
+        ->get();
 
-        return view('pegawai.pengajuan.index', compact('pengajuan', 'statusList'));
-    }
+    return view(
+        'verifikator.pengajuan.index',
+        compact('pengajuan', 'urutan')
+    );
+}
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Form Pengajuan Baru
+    |--------------------------------------------------------------------------
+    */
     public function create(): View
     {
         return view('pegawai.pengajuan.create');
     }
 
-    public function store(StorePengajuanRequest $request): RedirectResponse
-    {
-        $statusDiajukan = StatusPengajuan::where('kode_status', 'DIAJUKAN')->firstOrFail();
 
-        $pengajuan = DB::transaction(function () use ($request, $statusDiajukan) {
-            return Pengajuan::create([
-                'no_pengajuan' => $this->generateNoPengajuan($request->date('tanggal_pengajuan')->format('Ymd')),
-                'id_user' => Auth::id(),
-                'tanggal_pengajuan' => $request->date('tanggal_pengajuan'),
-                'perihal' => $request->string('perihal')->toString(),
-                'keterangan' => $request->string('keterangan')->toString(),
-                'total_nominal' => $request->input('total_nominal'),
-                'id_status' => $statusDiajukan->id_status,
-                'catatan_pengaju' => null,
-            ]);
-        });
+    /*
+    |--------------------------------------------------------------------------
+    | Simpan Pengajuan Baru
+    |--------------------------------------------------------------------------
+    */
+    public function store(
+        StorePengajuanRequest $request
+    ): RedirectResponse {
+        $statusDiajukan = StatusPengajuan::query()
+            ->where('kode_status', 'DIAJUKAN')
+            ->firstOrFail();
+
+        $pengajuan = DB::transaction(
+            function () use ($request, $statusDiajukan) {
+
+                return Pengajuan::create([
+                    'no_pengajuan' => $this->generateNoPengajuan(
+                        $request
+                            ->date('tanggal_pengajuan')
+                            ->format('Ymd')
+                    ),
+
+                    'id_user' => Auth::id(),
+
+                    'tanggal_pengajuan' =>
+                        $request->date('tanggal_pengajuan'),
+
+                    'perihal' =>
+                        $request->string('perihal')->toString(),
+
+                    'keterangan' =>
+                        $request->string('keterangan')->toString(),
+
+                    'total_nominal' =>
+                        $request->input('total_nominal'),
+
+                    'id_status' =>
+                        $statusDiajukan->id_status,
+
+                    // Metode baru dipilih Bendahara.
+                    'metode_pembayaran' => null,
+
+                    'catatan_pengaju' => null,
+                ]);
+            }
+        );
 
         return redirect()
-            ->route('pegawai.pengajuan.show', $pengajuan)
-            ->with('success', 'Pengajuan berhasil dibuat dan menunggu proses verifikasi.');
+            ->route(
+                'pegawai.pengajuan.show',
+                $pengajuan
+            )
+            ->with(
+                'success',
+                'Pengajuan berhasil dibuat dan menunggu proses verifikasi.'
+            );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Detail Pengajuan
+    |--------------------------------------------------------------------------
+    */
     public function show(Pengajuan $pengajuan): View
     {
-        $pengajuan->load(['status', 'pemohon']);
+        /*
+         * Authorization dilakukan terlebih dahulu supaya
+         * pengguna lain tidak dapat membaca detail pengajuan.
+         */
         Gate::authorize('view', $pengajuan);
 
-        $timeline = $this->buildTimeline($pengajuan);
+        /*
+         * Seluruh data timeline dimuat melalui relationship.
+         *
+         * Timeline tidak lagi dibuat dengan query manual karena
+         * setiap tahap harus menggunakan status record-nya sendiri.
+         */
+        $pengajuan->load([
+            'status',
+            'pemohon',
 
-        return view('pegawai.pengajuan.show', compact('pengajuan', 'timeline'));
+            /*
+            |--------------------------------------------------------------------------
+            | VERIFIKASI
+            |--------------------------------------------------------------------------
+            */
+            'verifikasi' => function ($query) {
+                $query
+                    ->orderBy('tahap')
+                    ->orderBy('id_verifikasi');
+            },
+
+            'verifikasi.verifikator',
+            'verifikasi.statusVerifikasi',
+
+            /*
+            |--------------------------------------------------------------------------
+            | BENDAHARA
+            |--------------------------------------------------------------------------
+            |
+            | Bendahara sekarang dapat mempunyai beberapa record:
+            |
+            | - PENGAJUAN_SPP
+            | - PEMBAYARAN_LANGSUNG
+            | - KONFIRMASI
+            |
+            */
+            'bendahara' => function ($query) {
+                $query->orderBy('id_bendahara');
+            },
+
+            'bendahara.user',
+            'bendahara.statusPencairan',
+
+            /*
+            |--------------------------------------------------------------------------
+            | PPK
+            |--------------------------------------------------------------------------
+            */
+            'ppk' => function ($query) {
+                $query->orderBy('id_ppk');
+            },
+
+            'ppk.user',
+            'ppk.statusPencairan',
+
+            /*
+            |--------------------------------------------------------------------------
+            | PPSPM
+            |--------------------------------------------------------------------------
+            */
+            'ppspm' => function ($query) {
+                $query->orderBy('id_ppspm');
+            },
+
+            'ppspm.user',
+            'ppspm.statusPencairan',
+        ]);
+
+        return view(
+            'pegawai.pengajuan.show',
+            compact('pengajuan')
+        );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Form Revisi Pengajuan
+    |--------------------------------------------------------------------------
+    */
     public function edit(Pengajuan $pengajuan): View
     {
         $pengajuan->load('status');
+
         Gate::authorize('update', $pengajuan);
 
-        return view('pegawai.pengajuan.edit', compact('pengajuan'));
+        return view(
+            'pegawai.pengajuan.edit',
+            compact('pengajuan')
+        );
     }
 
-    public function update(UpdatePengajuanRequest $request, Pengajuan $pengajuan): RedirectResponse
-    {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Simpan Perbaikan / Revisi
+    |--------------------------------------------------------------------------
+    */
+    public function update(
+        UpdatePengajuanRequest $request,
+        Pengajuan $pengajuan
+    ): RedirectResponse {
         $pengajuan->load('status');
+
         Gate::authorize('update', $pengajuan);
 
-        $statusVerifikasiSatu = StatusPengajuan::where('kode_status', 'VERIFIKASI_1')->firstOrFail();
+        /*
+         * Setelah pegawai memperbaiki pengajuan,
+         * proses kembali ke Verifikator 1.
+         */
+        $statusVerifikasiSatu = StatusPengajuan::query()
+            ->where('kode_status', 'VERIFIKASI_1')
+            ->firstOrFail();
 
-        $pengajuan->update([
-            'tanggal_pengajuan' => $request->date('tanggal_pengajuan'),
-            'perihal' => $request->string('perihal')->toString(),
-            'keterangan' => $request->string('keterangan')->toString(),
-            'total_nominal' => $request->input('total_nominal'),
-            'catatan_pengaju' => $request->filled('catatan_pengaju')
-                ? $request->string('catatan_pengaju')->toString()
-                : null,
-            'id_status' => $statusVerifikasiSatu->id_status,
-        ]);
+        DB::transaction(
+            function () use (
+                $request,
+                $pengajuan,
+                $statusVerifikasiSatu
+            ) {
+                $pengajuan->update([
+                    'tanggal_pengajuan' =>
+                        $request->date('tanggal_pengajuan'),
+
+                    'perihal' =>
+                        $request->string('perihal')->toString(),
+
+                    'keterangan' =>
+                        $request->string('keterangan')->toString(),
+
+                    'total_nominal' =>
+                        $request->input('total_nominal'),
+
+                    'catatan_pengaju' =>
+                        $request->filled('catatan_pengaju')
+                            ? $request
+                                ->string('catatan_pengaju')
+                                ->toString()
+                            : null,
+
+                    'id_status' =>
+                        $statusVerifikasiSatu->id_status,
+                ]);
+            }
+        );
 
         return redirect()
-            ->route('pegawai.pengajuan.show', $pengajuan)
-            ->with('success', 'Perbaikan berhasil dikirim. Pengajuan kembali ke Verifikator 1.');
+            ->route(
+                'pegawai.pengajuan.show',
+                $pengajuan
+            )
+            ->with(
+                'success',
+                'Perbaikan berhasil dikirim. Pengajuan kembali ke Verifikator 1.'
+            );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Riwayat Pengajuan
+    |--------------------------------------------------------------------------
+    */
     public function riwayat(): View
     {
         $pengajuan = Pengajuan::query()
@@ -110,125 +307,50 @@ class PengajuanController extends Controller
             ->latest('created_at')
             ->paginate(15);
 
-        return view('pegawai.pengajuan.riwayat', compact('pengajuan'));
+        return view(
+            'pegawai.pengajuan.riwayat',
+            compact('pengajuan')
+        );
     }
 
-    private function generateNoPengajuan(string $tanggal): string
-    {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate Nomor Pengajuan
+    |--------------------------------------------------------------------------
+    */
+    private function generateNoPengajuan(
+        string $tanggal
+    ): string {
         $prefix = "PGJ-{$tanggal}-";
 
         $latest = Pengajuan::query()
-            ->where('no_pengajuan', 'like', $prefix . '%')
+            ->where(
+                'no_pengajuan',
+                'like',
+                $prefix . '%'
+            )
             ->orderByDesc('no_pengajuan')
             ->lockForUpdate()
             ->value('no_pengajuan');
 
-        $sequence = $latest ? ((int) substr($latest, -4)) + 1 : 1;
+        $sequence = $latest
+            ? ((int) substr($latest, -4)) + 1
+            : 1;
 
         if ($sequence > 9999) {
             throw ValidationException::withMessages([
-                'tanggal_pengajuan' => 'Nomor pengajuan untuk tanggal tersebut sudah mencapai batas harian.',
+                'tanggal_pengajuan' =>
+                    'Nomor pengajuan untuk tanggal tersebut sudah mencapai batas harian.',
             ]);
         }
 
-        return $prefix . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+        return $prefix .
+            str_pad(
+                (string) $sequence,
+                4,
+                '0',
+                STR_PAD_LEFT
+            );
     }
-
-   private function buildTimeline(Pengajuan $pengajuan): Collection
-{
-    $items = collect([
-        [
-            'waktu' => $pengajuan->created_at,
-            'judul' => 'Pengajuan dibuat',
-            'kode_status' => 'DIAJUKAN',
-            'nama_status' => 'Diajukan',
-            'catatan' => $pengajuan->catatan_pengaju,
-            'aktor' => $pengajuan->pemohon?->nama_lengkap,
-        ],
-    ]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Timeline Verifikasi
-    |--------------------------------------------------------------------------
-    */
-    $verifikasi = DB::table('verifikasi as v')
-        ->join(
-            'status_verifikasi as s',
-            's.id_status_verifikasi',
-            '=',
-            'v.id_status_verifikasi'
-        )
-        ->join(
-            'users as u',
-            'u.id_user',
-            '=',
-            'v.id_verifikator'
-        )
-        ->where('v.id_pengajuan', $pengajuan->id_pengajuan)
-        ->select([
-            'v.tanggal_verifikasi as waktu',
-            'v.tahap',
-            'v.catatan',
-            's.kode_status as kode_status',
-            's.nama_status as nama_status',
-            'u.nama_lengkap as aktor',
-        ])
-        ->get()
-        ->map(fn ($item) => [
-            'waktu' => $item->waktu,
-            'judul' => 'Verifikasi Tahap ' . $item->tahap,
-            'kode_status' => $item->kode_status,
-            'nama_status' => $item->nama_status,
-            'catatan' => $item->catatan,
-            'aktor' => $item->aktor,
-        ]);
-
-    $items = $items->concat($verifikasi);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Timeline Pencairan
-    |--------------------------------------------------------------------------
-    */
-    foreach ([
-        'ppk' => 'PPK',
-        'bendahara' => 'Bendahara',
-        'ppspm' => 'PPSPM',
-    ] as $table => $label) {
-
-        $idColumn = 'id_' . $table;
-
-        $rows = DB::table("{$table} as p")
-            ->join(
-                'status_pencairan as s',
-                's.id_status_pencairan',
-                '=',
-                'p.id_status'
-            )
-            ->where('p.id_pengajuan', $pengajuan->id_pengajuan)
-            ->select([
-                "p.{$idColumn}",
-                'p.tanggal_proses as waktu',
-                'p.catatan',
-                's.kode_status as kode_status',
-                's.nama_status as nama_status',
-            ])
-            ->get()
-            ->map(fn ($item) => [
-                'waktu' => $item->waktu,
-                'judul' => 'Proses ' . $label,
-                'kode_status' => $item->kode_status,
-                'nama_status' => $item->nama_status,
-                'catatan' => $item->catatan,
-                'aktor' => $label,
-            ]);
-
-        $items = $items->concat($rows);
-    }
-
-    return $items
-        ->sortBy(fn ($item) => (string) ($item['waktu'] ?? ''))
-        ->values();
-}
 }

@@ -2,31 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Bendahara extends Model
 {
-    use HasFactory;
-
     protected $table = 'bendahara';
 
     protected $primaryKey = 'id_bendahara';
 
-    /*
-    |--------------------------------------------------------------------------
-    | Nonaktifkan timestamps otomatis Laravel
-    |--------------------------------------------------------------------------
-    |
-    | Tabel bendahara hanya memiliki created_at,
-    | tidak memiliki updated_at.
-    |
-    */
     public $timestamps = false;
 
     protected $fillable = [
         'id_pengajuan',
+        'id_user',
+        'tahap',
         'tanggal_proses',
+        'no_spp',
+        'tgl_spp',
+        'no_spm',
+        'tgl_transfer',
+        'no_sp2d',
+        'tgl_sp2d',
         'id_status',
         'catatan',
     ];
@@ -37,6 +33,15 @@ class Bendahara extends Model
             Pengajuan::class,
             'id_pengajuan',
             'id_pengajuan'
+        );
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(
+            User::class,
+            'id_user',
+            'id_user'
         );
     }
 
