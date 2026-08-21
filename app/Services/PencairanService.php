@@ -6,97 +6,129 @@ use App\Models\Pengajuan;
 use App\Models\Ppk;
 use App\Models\Bendahara;
 use App\Models\Ppspm;
+use App\Models\StatusPengajuan;
 use Illuminate\Support\Facades\DB;
 
 class PencairanService
 {
-    public function prosesPpk(Pengajuan $pengajuan, array $data)
-{
-    return DB::transaction(function () use ($pengajuan, $data) {
-
-        Ppk::create([
-            'id_pengajuan' => $pengajuan->id_pengajuan,
-            'tanggal_proses' => now(),
-            'id_status' => $data['id_status_pencairan'],
-            'catatan' => $data['catatan'] ?? null,
-        ]);
-
-        /*
-         * 2 = SESUAI
-         * 3 = TIDAK_SESUAI
-         *
-         * SESUAI        -> PROSES_BENDAHARA (8)
-         * TIDAK SESUAI  -> kembali VERIFIKASI_3 (4)
-         */
-        if ((int) $data['id_status_pencairan'] === 2) {
-            $pengajuan->update([
-                'id_status' => 8,
-            ]);
-        } else {
-            $pengajuan->update([
-                'id_status' => 4,
-            ]);
-        }
-
-        return $pengajuan;
-    });
-}
-
-    public function prosesBendahara(Pengajuan $pengajuan, array $data)
+    public function pilihMetodePembayaran(Pengajuan $pengajuan, string $metode)
     {
-        return DB::transaction(function () use ($pengajuan, $data) {
+        return DB::transaction(function () use ($pengajuan, $metode) {
+            $pengajuan->update(['metode_pembayaran' => $metode]);
+            return $pengajuan;
+        });
+    }
+
+    public function tolakAtauRevisiBendahara(Pengajuan $pengajuan, array $data, string $tahap)
+    {
+        return DB::transaction(function () use ($pengajuan, $data, $tahap) {
             Bendahara::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
+                'id_user' => auth()->id(),
+                'tahap' => $tahap,
                 'tanggal_proses' => now(),
-                'id_status' => $data['id_status_pencairan'], // ID status Selesai untuk Bendahara
+                'id_status' => $data['id_status_pencairan'],
                 'catatan' => $data['catatan'] ?? null,
             ]);
 
-            // Bendahara selesai -> 9 (PROSES_PPSPM)
-            $pengajuan->update(['id_status' => 9]);
+            $kodeGlobal = $data['id_status_pencairan'] == 2 ? 'REVISI' : 'DITOLAK';
+            $statusGlobal = StatusPengajuan::where('kode_status', $kodeGlobal)->firstOrFail();
+            $pengajuan->update(['id_status' => $statusGlobal->id_status]);
 
             return $pengajuan;
         });
     }
 
-  public function prosesPpspm(Pengajuan $pengajuan, array $data)
-{
-    return DB::transaction(function () use ($pengajuan, $data) {
-
-        Ppspm::create([
-            'id_pengajuan' => $pengajuan->id_pengajuan,
-            'tanggal_proses' => now(),
-            'id_status' => $data['id_status_pencairan'],
-            'catatan' => $data['catatan'] ?? null,
-        ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Keputusan PPSPM
-        |--------------------------------------------------------------------------
-        |
-        | 2 = SESUAI
-        | 3 = TIDAK_SESUAI
-        |
-        */
-
-        if ((int) $data['id_status_pencairan'] === 2) {
-
-            // SESUAI → proses selesai
-            $pengajuan->update([
-                'id_status' => 10,
+    public function bendaharaAjukanSpp(Pengajuan $pengajuan, array $data)
+    {
+        return DB::transaction(function () use ($pengajuan, $data) {
+            Bendahara::create([
+                'id_pengajuan' => $pengajuan->id_pengajuan,
+                'id_user' => auth()->id(),
+                'tahap' => 'PENGAJUAN_SPP',
+                'tanggal_proses' => now(),
+                'id_status' => 1,
+                'catatan' => $data['catatan'] ?? null,
             ]);
 
-        } else {
+            $statusPpk = StatusPengajuan::where('kode_status', 'PROSES_PPK')->firstOrFail();
+            $pengajuan->update(['id_status' => $statusPpk->id_status]);
 
-            // TIDAK SESUAI
-            // Sesuaikan tujuan kembali dengan flow yang Anda inginkan.
-            $pengajuan->update([
-                'id_status' => 4,
+            return $pengajuan;
+        });
+    }
+
+    public function bendaharaBayarLangsung(Pengajuan $pengajuan, array $data)
+    {
+        return DB::transaction(function () use ($pengajuan, $data) {
+            Bendahara::create([
+                'id_pengajuan' => $pengajuan->id_pengajuan,
+                'id_user' => auth()->id(),
+                'tahap' => 'PEMBAYARAN_LANGSUNG',
+                'tanggal_proses' => now(),
+                'id_status' => 1,
+                'catatan' => $data['catatan'] ?? null,
             ]);
-        }
 
-        return $pengajuan;
-    });
-}
+            $statusSelesai = StatusPengajuan::where('kode_status', 'SELESAI')->firstOrFail();
+            $pengajuan->update(['id_status' => $statusSelesai->id_status]);
+
+            return $pengajuan;
+        });
+    }
+
+    public function ppkTerbitkanSpm(Pengajuan $pengajuan, array $data)
+    {
+        return DB::transaction(function () use ($pengajuan, $data) {
+            Ppk::create([
+                'id_pengajuan' => $pengajuan->id_pengajuan,
+                'id_user' => auth()->id(),
+                'tanggal_proses' => now(),
+                'id_status' => 1,
+                'catatan' => $data['catatan'] ?? null,
+            ]);
+
+            $statusPpspm = StatusPengajuan::where('kode_status', 'PROSES_PPSPM')->firstOrFail();
+            $pengajuan->update(['id_status' => $statusPpspm->id_status]);
+
+            return $pengajuan;
+        });
+    }
+
+    public function ppspmAjukanKemenkeu(Pengajuan $pengajuan, array $data)
+    {
+        return DB::transaction(function () use ($pengajuan, $data) {
+            Ppspm::create([
+                'id_pengajuan' => $pengajuan->id_pengajuan,
+                'id_user' => auth()->id(),
+                'tanggal_proses' => now(),
+                'id_status' => 1,
+                'catatan' => $data['catatan'] ?? null,
+            ]);
+
+            $statusKonfirmasi = StatusPengajuan::where('kode_status', 'PROSES_KONFIRMASI_BENDAHARA')->firstOrFail();
+            $pengajuan->update(['id_status' => $statusKonfirmasi->id_status]);
+
+            return $pengajuan;
+        });
+    }
+
+    public function bendaharaKonfirmasi(Pengajuan $pengajuan, array $data)
+    {
+        return DB::transaction(function () use ($pengajuan, $data) {
+            Bendahara::create([
+                'id_pengajuan' => $pengajuan->id_pengajuan,
+                'id_user' => auth()->id(),
+                'tahap' => 'KONFIRMASI',
+                'tanggal_proses' => now(),
+                'id_status' => 1,
+                'catatan' => $data['catatan'] ?? null,
+            ]);
+
+            $statusSelesai = StatusPengajuan::where('kode_status', 'SELESAI')->firstOrFail();
+            $pengajuan->update(['id_status' => $statusSelesai->id_status]);
+
+            return $pengajuan;
+        });
+    }
 }

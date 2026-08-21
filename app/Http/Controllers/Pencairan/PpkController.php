@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Pencairan;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pengajuan;
+use App\Models\Ppk;
+use App\Models\StatusPengajuan;
 use App\Services\PencairanService;
 use Illuminate\Http\Request;
 
@@ -11,78 +13,42 @@ class PpkController extends Controller
 {
     protected $pencairanService;
 
-    public function __construct(PencairanService $pencairanService)
+    public function __construct(PencairanService $pencairanService) { $this->pencairanService = $pencairanService; }
+    
+    public function dashboard()
     {
-        $this->pencairanService = $pencairanService;
+        $idPpk = StatusPengajuan::where('kode_status', 'PROSES_PPK')->value('id_status');
+        
+        // Ambil seluruh data pengajuan untuk PPK
+        $pengajuan = Pengajuan::where('id_status', $idPpk)->get();
+        $totalMenunggu = $pengajuan->count();
+
+        return view('ppk.dashboard', compact('totalMenunggu', 'pengajuan'));
     }
-
-   public function dashboard()
-{
-    $pengajuan = Pengajuan::with([
-        'pemohon',
-        'status',
-
-        'verifikasi' => function ($query) {
-            $query->orderBy('tahap');
-        },
-
-        'verifikasi.verifikator',
-        'verifikasi.statusVerifikasi',
-    ])
-        ->where('id_status', 7)
-        ->orderBy('tanggal_pengajuan', 'asc')
-        ->get();
-
-    $totalMenunggu = $pengajuan->count();
-
-    return view('ppk.dashboard', compact(
-        'pengajuan',
-        'totalMenunggu'
-    ));
-}
 
     public function index()
-{
-    $pengajuan = Pengajuan::with([
-        'pemohon',
-        'status',
-    ])
-        ->where('id_status', 7)
-        ->orderBy('tanggal_pengajuan', 'asc')
-        ->get();
-
-    return view('ppk.pengajuan.index', compact('pengajuan'));
-}
-
-    public function show($id)
-{
-    $pengajuan = Pengajuan::with([
-        'pemohon',
-        'status',
-        'verifikasi' => function ($query) {
-            $query->orderBy('tahap');
-        },
-        'verifikasi.verifikator',
-        'verifikasi.statusVerifikasi',
-    ])->findOrFail($id);
-
-    if ($pengajuan->id_status != 7) {
-        abort(403, 'Bukan wewenang PPK.');
+    {
+        $idPpk = StatusPengajuan::where('kode_status', 'PROSES_PPK')->value('id_status');
+        $pengajuan = Pengajuan::with('user')->where('id_status', $idPpk)->get();
+        return view('ppk.pengajuan.index', compact('pengajuan'));
     }
 
-    return view('ppk.pengajuan.show', compact('pengajuan'));
-}
-
-    public function keputusan(Request $request, $id)
+    public function show($id)
     {
-        $request->validate([
-    'id_status_pencairan' => 'required|in:2,3',
-    'catatan' => 'nullable|required_if:id_status_pencairan,3',
-]);
+        $pengajuan = Pengajuan::with('user')->findOrFail($id);
+        return view('ppk.pengajuan.show', compact('pengajuan'));
+    }
 
+    public function terbitkanSpm(Request $request, $id)
+    {
         $pengajuan = Pengajuan::findOrFail($id);
-        $this->pencairanService->prosesPpk($pengajuan, $request->all());
+        $this->pencairanService->ppkTerbitkanSpm($pengajuan, $request->all());
+        return redirect()->route('ppk.pengajuan.index')->with('success', 'SPM diterbitkan.');
+    }
 
-        return redirect()->route('ppk.pengajuan.index')->with('success', 'Keputusan PPK diproses.');
+    public function riwayat()
+    {
+        $riwayat = Ppk::where('id_user', auth()->id())->with('pengajuan.user')->latest()->paginate(15);
+        return view('ppk.riwayat', compact('riwayat'));
     }
 }

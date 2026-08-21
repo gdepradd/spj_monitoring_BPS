@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Pencairan;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pengajuan;
+use App\Models\Bendahara;
+use App\Models\StatusPengajuan;
 use App\Services\PencairanService;
 use Illuminate\Http\Request;
 
@@ -18,83 +20,112 @@ class BendaharaController extends Controller
 
     public function dashboard()
     {
-        $totalMenunggu = Pengajuan::where('id_status', 8)->count();
+        $idMenunggu = StatusPengajuan::where('kode_status', 'MENUNGGU_PENCAIRAN')->value('id_status');
+        $idKonfirmasi = StatusPengajuan::where('kode_status', 'PROSES_KONFIRMASI_BENDAHARA')->value('id_status');
+        
+        $totalMenunggu = Pengajuan::whereIn('id_status', [$idMenunggu, $idKonfirmasi])->count();
+        
         return view('bendahara.dashboard', compact('totalMenunggu'));
     }
 
-   public function index()
-{
-    $pengajuan = Pengajuan::with([
-        'pemohon',
-        'status',
-    ])
-        ->where('id_status', 8)
-        ->orderBy('tanggal_pengajuan')
-        ->get();
+    public function index()
+    {
+        $idMenunggu = StatusPengajuan::where('kode_status', 'MENUNGGU_PENCAIRAN')->value('id_status');
+        $idKonfirmasi = StatusPengajuan::where('kode_status', 'PROSES_KONFIRMASI_BENDAHARA')->value('id_status');
 
-    return view(
-        'bendahara.pengajuan.index',
-        compact('pengajuan')
-    );
-}
+        // Pisahkan menjadi dua variabel untuk 2 tab/section di antarmuka
+        $perluDiajukan = Pengajuan::with(['user', 'status'])
+            ->where('id_status', $idMenunggu)
+            ->orderBy('tanggal_pengajuan')
+            ->get();
 
-   public function show($id)
-{
-    $pengajuan = Pengajuan::with([
-        'pemohon',
-        'status',
-        'verifikasi' => function ($query) {
-            $query->orderBy('tahap');
-        },
-        'verifikasi.verifikator',
-        'verifikasi.statusVerifikasi',
-    ])->findOrFail($id);
+        $perluDikonfirmasi = Pengajuan::with(['user', 'status'])
+            ->where('id_status', $idKonfirmasi)
+            ->orderBy('tanggal_pengajuan')
+            ->get();
 
-    if ($pengajuan->id_status != 8) {
-        abort(403, 'Bukan wewenang Bendahara.');
+        return view('bendahara.pengajuan.index', compact('perluDiajukan', 'perluDikonfirmasi'));
     }
 
-    $ppk = \App\Models\Ppk::with('statusPencairan')
-        ->where('id_pengajuan', $pengajuan->id_pengajuan)
-        ->latest('id_ppk')
-        ->first();
+    public function show($id)
+    {
+        $pengajuan = Pengajuan::with([
+            'user', // Menggunakan 'user' sesuai pembaruan dari Dev 1
+            'status',
+            'verifikasi' => function ($query) {
+                $query->orderBy('tahap');
+            },
+            'verifikasi.verifikator',
+            'verifikasi.statusVerifikasi',
+        ])->findOrFail($id);
 
-    return view(
-        'bendahara.pengajuan.show',
-        compact('pengajuan', 'ppk')
-    );
-}
+        $idMenunggu = StatusPengajuan::where('kode_status', 'MENUNGGU_PENCAIRAN')->value('id_status');
+        $idKonfirmasi = StatusPengajuan::where('kode_status', 'PROSES_KONFIRMASI_BENDAHARA')->value('id_status');
 
-   public function keputusan(Request $request, $id)
-{
-    $pengajuan = Pengajuan::findOrFail($id);
+        if (!in_array($pengajuan->id_status, [$idMenunggu, $idKonfirmasi])) {
+            abort(403, 'Bukan wewenang Bendahara pada tahap ini.');
+        }
 
-    if ($pengajuan->id_status != 8) {
-        abort(403, 'Bukan wewenang Bendahara.');
+        return view('bendahara.pengajuan.show', compact('pengajuan'));
     }
 
-    $data = $request->validate([
-        'id_status_pencairan' => [
-            'required',
-            'in:2,3',
-        ],
+    public function ajukan(Request $request, $id)
+    {
+        $request->validate([
+            'id_status_pencairan' => 'required|in:1,2,3', // 1=ACC, 2=REVISI, 3=TOLAK
+            'metode_pembayaran' => 'required_if:id_status_pencairan,1',
+            'catatan' => 'required_if:id_status_pencairan,2,3' // Wajib jika ditolak/revisi
+        ]);
 
-        'catatan' => [
-            'nullable',
-            'required_if:id_status_pencairan,3',
-        ],
-    ]);
+        $pengajuan = Pengajuan::findOrFail($id);
 
-    $this->pencairanService->prosesBendahara(
-        $pengajuan,
-        $data
-    );
+        // Jika REVISI (2) atau TOLAK (3)
+        if ($request->id_status_pencairan != 1) {
+            $this->pencairanService->tolakAtauRevisiBendahara($pengajuan, $request->all(), 'PENGAJUAN_SPP');
+            return redirect()->route('bendahara.pengajuan.index')->with('success', 'Keputusan revisi/tolak berhasil disimpan.');
+        }
+        
+        // Jika ACC (1)
+        $this->pencairanService->pilihMetodePembayaran($pengajuan, $request->metode_pembayaran);
 
-    return redirect()
-        ->route('bendahara.dashboard')
-        ->with(
-            'success',
-            'Keputusan Bendahara berhasil disimpan.'
-        );
-}
+        if ($request->metode_pembayaran === 'UP_TUP') {
+            $this->pencairanService->bendaharaBayarLangsung($pengajuan, $request->all());
+        } else {
+            $this->pencairanService->bendaharaAjukanSpp($pengajuan, $request->all());
+        }
+
+        return redirect()->route('bendahara.pengajuan.index')->with('success', 'Metode & Pengajuan berhasil diproses.');
+    }
+
+    public function konfirmasi(Request $request, $id)
+    {
+        $pengajuan = Pengajuan::findOrFail($id);
+        
+        // Validasi wajib isi untuk tahap akhir LS_PIHAK_KETIGA
+        if ($pengajuan->metode_pembayaran === 'LS_PIHAK_KETIGA') {
+            $request->validate([
+                'no_spm' => 'required',
+                'tgl_transfer' => 'required|date',
+                'no_sp2d' => 'required',
+                'tgl_sp2d' => 'required|date',
+            ]);
+        } else {
+            // Untuk UP_TUP dan LS_BENDAHARA
+            $request->validate(['tgl_transfer' => 'required|date']);
+        }
+
+        $this->pencairanService->bendaharaKonfirmasi($pengajuan, $request->all());
+
+        return redirect()->route('bendahara.pengajuan.index')->with('success', 'Konfirmasi pencairan selesai.');
+    }
+
+    public function riwayat()
+    {
+        $riwayat = Bendahara::where('id_user', auth()->id())
+                    ->with('pengajuan.user')
+                    ->latest()
+                    ->paginate(15);
+                    
+        return view('bendahara.riwayat', compact('riwayat'));
+    }
 }

@@ -143,10 +143,10 @@ class PengajuanController extends Controller
 
     public function riwayat()
     {
-        $riwayat = Verifikasi::with(['pengajuan', 'statusVerifikasi'])
+        $riwayat = Verifikasi::with(['pengajuan.user', 'statusVerifikasi'])
                     ->where('id_verifikator', auth()->id())
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+                    ->latest()
+                    ->paginate(15);
 
         return view('verifikator.riwayat', compact('riwayat'));
     }

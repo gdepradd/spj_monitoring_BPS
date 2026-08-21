@@ -1,288 +1,101 @@
 <x-app-layout>
     <x-slot name="header">
-        <div>
-            <p class="text-sm font-medium text-purple-600">
-                POV 3 — Pencairan
-            </p>
-
-            <h2 class="text-xl font-bold text-gray-800">
-                Detail Pengajuan PPK
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-500">
-                {{ $pengajuan->no_pengajuan }}
-            </p>
-        </div>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Proses PPK: ' . $pengajuan->no_pengajuan) }}
+        </h2>
     </x-slot>
 
-    <div class="py-8">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {{-- tombol kembali --}}
-            <div class="mb-5">
-                <a href="{{ route('ppk.pengajuan.index') }}"
-                    class="inline-flex items-center text-sm font-semibold
-                           text-purple-600 hover:text-purple-700">
-                    ← Kembali ke daftar pengajuan
-                </a>
+            <!-- Detail Pengaju -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">Informasi Pemohon</h3>
+                <div class="space-y-2 text-sm">
+                    <p><strong>Nama Lengkap:</strong> {{ $pengajuan->user->nama_lengkap ?? $pengajuan->user->name ?? '-' }}</p>
+                    <p><strong>Email:</strong> {{ $pengajuan->user->email ?? '-' }}</p>
+                    <p><strong>No. HP:</strong> {{ $pengajuan->user->no_hp ?? '-' }}</p>
+                    <p><strong>Tanggal Pengajuan:</strong> {{ $pengajuan->tanggal_pengajuan->format('d M Y') }}</p>
+                    <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p>
+                    <p><strong>Metode Pembayaran:</strong> <span class="bg-gray-200 px-2 py-1 rounded">{{ $pengajuan->metode_pembayaran }}</span></p>
+                    <p class="text-lg font-bold text-purple-600 mt-2">Total Nominal: Rp {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}</p>
+                </div>
             </div>
 
-
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-                {{-- DATA PENGAJUAN --}}
-                <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
-
-                    <div class="border-b border-gray-100 px-6 py-5">
-                        <h3 class="text-lg font-bold text-gray-900">
-                            Informasi Pengajuan
-                        </h3>
-                    </div>
-
-                    <div class="space-y-5 p-6">
-
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">
-                                No. Pengajuan
-                            </p>
-
-                            <p class="mt-1 font-semibold text-gray-900">
-                                {{ $pengajuan->no_pengajuan }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">
-                                Pengaju
-                            </p>
-
-                            <p class="mt-1 font-semibold text-gray-900">
-                                {{ $pengajuan->pemohon?->nama_lengkap ?? '-' }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">
-                                Tanggal Pengajuan
-                            </p>
-
-                            <p class="mt-1 text-gray-700">
-                                {{ \Carbon\Carbon::parse($pengajuan->tanggal_pengajuan)->format('d M Y') }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">
-                                Perihal
-                            </p>
-
-                            <p class="mt-1 text-gray-700">
-                                {{ $pengajuan->perihal }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">
-                                Total Nominal
-                            </p>
-
-                            <p class="mt-1 text-2xl font-bold text-purple-600">
-                                Rp
-                                {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <p class="text-xs font-semibold uppercase text-gray-400">
-                                Keterangan
-                            </p>
-
-                            <div class="mt-2 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
-                                {{ $pengajuan->keterangan ?? '-' }}
-                            </div>
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {{-- HASIL VERIFIKASI --}}
-                <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
-
-                    <div class="border-b border-gray-100 px-6 py-5">
-                        <h3 class="text-lg font-bold text-gray-900">
-                            Hasil Verifikasi
-                        </h3>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            Riwayat pemeriksaan Verifikator 1 sampai 3.
-                        </p>
-                    </div>
-
-
-                    <div class="space-y-4 p-6">
-
-                        @forelse($pengajuan->verifikasi->sortBy('tahap') as $verifikasi)
-                            <div class="rounded-xl border border-gray-200 p-5">
-
-                                <div class="flex items-start justify-between gap-4">
-
-                                    <div>
-                                        <p class="font-bold text-gray-900">
-                                            Verifikator {{ $verifikasi->tahap }}
-                                        </p>
-
-                                        <p class="mt-1 text-sm text-gray-500">
-                                            {{ $verifikasi->verifikator?->nama_lengkap ?? '-' }}
-                                        </p>
-                                    </div>
-
-                                    <span
-                                        class="inline-flex rounded-full
-                                                 bg-green-100 px-3 py-1
-                                                 text-xs font-semibold text-green-700">
-
-                                        {{ $verifikasi->statusVerifikasi?->nama_status ?? '-' }}
-
-                                    </span>
-
-                                </div>
-
-
-                                <div class="mt-4 border-t border-gray-100 pt-4">
-
-                                    <p class="text-xs font-semibold uppercase text-gray-400">
-                                        Tanggal Verifikasi
-                                    </p>
-
-                                    <p class="mt-1 text-sm text-gray-700">
-                                        @if ($verifikasi->tanggal_verifikasi)
-                                            {{ \Carbon\Carbon::parse($verifikasi->tanggal_verifikasi)->format('d M Y H:i') }}
-                                        @else
-                                            -
-                                        @endif
-                                    </p>
-
-
-                                    <p class="mt-4 text-xs font-semibold uppercase text-gray-400">
-                                        Catatan
-                                    </p>
-
-                                    <div class="mt-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
-                                        {{ $verifikasi->catatan ?? '-' }}
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        @empty
-
-                            <div class="rounded-lg bg-gray-50 p-5 text-center">
-                                <p class="text-sm text-gray-500">
-                                    Belum ada data hasil verifikasi.
-                                </p>
-                            </div>
-                        @endforelse
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {{-- PROSES PPK --}}
-            <div class="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm">
-
-                <div class="border-b border-gray-100 px-6 py-5">
-
+            <!-- Area Form Terbitkan SPM -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
                     <h3 class="text-lg font-bold text-gray-900">
-                        Keputusan PPK
+                        Penerbitan SPM
                     </h3>
-
                     <p class="mt-1 text-sm text-gray-500">
-                        Tentukan hasil pemeriksaan pengajuan pada tahap PPK.
+                        Terbitkan Surat Perintah Membayar untuk diteruskan ke PPSPM.
                     </p>
-
                 </div>
-
 
                 <div class="p-6">
+                    @if($pengajuan->status->kode_status === 'PROSES_PPK')
+                        <form action="{{ route('ppk.pengajuan.terbitkan-spm', $pengajuan->id_pengajuan) }}" method="POST">
+                            @csrf
+                            <div class="space-y-5">
+                                <!-- Jika Dev 1 sudah migrate kolom no_spm dan tgl_spm, hilangkan komentar blok ini -->
+                                <!--
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700">No. SPM</label>
+                                    <input type="text" name="no_spm" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700">Tanggal SPM</label>
+                                    <input type="date" name="tgl_spm" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm">
+                                </div>
+                                -->
 
-                    <form
-                        action="{{ route('ppk.pengajuan.keputusan', $pengajuan->id_pengajuan) }}"
-                        method="POST">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700">Catatan (Opsional)</label>
+                                    <textarea name="catatan" rows="3" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"></textarea>
+                                </div>
 
-                        @csrf
-
-
-                        <div class="mb-5">
-
-                            <label class="block text-sm font-semibold text-gray-700">
-                                Keputusan
-                            </label>
-
-                            <div class="mt-3 flex flex-wrap gap-5">
-
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="id_status_pencairan" value="2"
-                                        class="text-purple-600" required>
-
-                                    <span class="ml-2">
-                                        Sesuai
-                                    </span>
-                                </label>
-
-
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="id_status_pencairan" value="3" class="text-red-600"
-                                        required>
-
-                                    <span class="ml-2">
-                                        Tidak Sesuai
-                                    </span>
-                                </label>
-
+                                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition">
+                                    Terbitkan SPM & Teruskan ke PPSPM
+                                </button>
                             </div>
-
-                        </div>
-
-
-                        <div class="mb-5">
-
-                            <label for="catatan" class="block text-sm font-semibold text-gray-700">
-                                Catatan
-                            </label>
-
-                            <textarea name="catatan" id="catatan" rows="4"
-                                class="mt-2 w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-purple-500
-                                       focus:ring-purple-500"
-                                placeholder="Masukkan catatan PPK..."></textarea>
-
-                        </div>
-
-
-                        <div class="flex justify-end">
-
-                            <button type="submit"
-                                class="rounded-lg bg-purple-600
-                                       px-6 py-3 text-sm font-semibold
-                                       text-white shadow-sm transition
-                                       hover:bg-purple-700">
-                                Simpan Keputusan PPK
-                            </button>
-
-                        </div>
-
-                    </form>
-
+                        </form>
+                    @else
+                        <p class="text-gray-500 text-center py-4">Pengajuan ini tidak berada pada tahap PPK.</p>
+                    @endif
                 </div>
-
             </div>
-
+            <!-- Area Linimasa (Timeline) -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 md:col-span-2">
+                <h3 class="font-bold text-lg mb-4 border-b pb-2">Linimasa Pengajuan</h3>
+                <ol class="relative border-l border-gray-200 ml-3">
+                    @foreach($pengajuan->riwayat_lengkap as $riwayat)
+                    <li class="mb-8 ml-6">
+                        <span class="absolute flex items-center justify-center w-4 h-4 rounded-full -left-2 ring-4 ring-white
+                            {{ $riwayat['status'] === 'Selesai' ? 'bg-green-500' : ($riwayat['status'] === 'Sedang Diproses' ? 'bg-blue-500' : ($riwayat['status'] === 'Revisi' || $riwayat['status'] === 'Ditolak' ? 'bg-red-500' : 'bg-gray-300')) }}">
+                        </span>
+                        <h3 class="flex items-center mb-1 text-md font-semibold text-gray-900">
+                            {{ $riwayat['judul'] }} 
+                        </h3>
+                        <time class="block mb-2 text-sm font-normal leading-none text-gray-400">
+                            {{ $riwayat['waktu'] ? \Carbon\Carbon::parse($riwayat['waktu'])->format('d M Y, H:i') : '-' }}
+                        </time>
+                        <p class="text-sm font-normal text-gray-500">
+                            <strong>Aktor:</strong> {{ $riwayat['aktor'] }} <br>
+                            <strong>Status:</strong> 
+                            <span class="{{ $riwayat['status'] === 'Selesai' ? 'text-green-600' : ($riwayat['status'] === 'Sedang Diproses' ? 'text-blue-600' : 'text-gray-600') }}">
+                                {{ $riwayat['status'] }}
+                            </span>
+                        </p>
+                        @if($riwayat['catatan'])
+                            <p class="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-200">
+                                <strong>Catatan:</strong> {{ $riwayat['catatan'] }}
+                            </p>
+                        @endif
+                    </li>
+                    @endforeach
+                </ol>
+            </div>
         </div>
     </div>
 </x-app-layout>

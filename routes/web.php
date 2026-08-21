@@ -15,7 +15,8 @@ Route::middleware(['auth', 'role:ppk'])->prefix('ppk')->name('ppk.')->group(func
     Route::get('/dashboard', [PpkController::class, 'dashboard'])->name('dashboard');
     Route::get('/pengajuan', [PpkController::class, 'index'])->name('pengajuan.index');
     Route::get('/pengajuan/{id}', [PpkController::class, 'show'])->name('pengajuan.show');
-    Route::post('/pengajuan/{id}/keputusan', [PpkController::class, 'keputusan'])->name('pengajuan.keputusan');
+    Route::post('/pengajuan/{id}/terbitkan-spm', [PpkController::class, 'terbitkanSpm'])->name('pengajuan.terbitkan-spm');
+    Route::get('/riwayat', [PpkController::class, 'riwayat'])->name('riwayat');
 });
 
 // BENDAHARA
@@ -23,10 +24,9 @@ Route::middleware(['auth', 'role:bendahara'])->prefix('bendahara')->name('bendah
     Route::get('/dashboard', [BendaharaController::class, 'dashboard'])->name('dashboard');
     Route::get('/pengajuan', [BendaharaController::class, 'index'])->name('pengajuan.index');
     Route::get('/pengajuan/{id}', [BendaharaController::class, 'show'])->name('pengajuan.show');
-    Route::post(
-    '/pengajuan/{id}/keputusan',
-    [BendaharaController::class, 'keputusan']
-)->name('pengajuan.keputusan');
+    Route::post('/pengajuan/{id}/ajukan', [BendaharaController::class, 'ajukan'])->name('pengajuan.ajukan');
+    Route::post('/pengajuan/{id}/konfirmasi', [BendaharaController::class, 'konfirmasi'])->name('pengajuan.konfirmasi');
+    Route::get('/riwayat', [BendaharaController::class, 'riwayat'])->name('riwayat');
 });
 
 // PPSPM
@@ -34,10 +34,8 @@ Route::middleware(['auth', 'role:ppspm'])->prefix('ppspm')->name('ppspm.')->grou
     Route::get('/dashboard', [PpspmController::class, 'dashboard'])->name('dashboard');
     Route::get('/pengajuan', [PpspmController::class, 'index'])->name('pengajuan.index');
     Route::get('/pengajuan/{id}', [PpspmController::class, 'show'])->name('pengajuan.show');
-   Route::post(
-    '/pengajuan/{id}/keputusan',
-    [PpspmController::class, 'keputusan']
-)->name('pengajuan.keputusan');
+    Route::post('/pengajuan/{id}/ajukan-kemenkeu', [PpspmController::class, 'ajukanKemenkeu'])->name('pengajuan.ajukan-kemenkeu');
+    Route::get('/riwayat', [PpspmController::class, 'riwayat'])->name('riwayat');
 });
 Route::get('/', function () {
     if (! auth()->check()) {
