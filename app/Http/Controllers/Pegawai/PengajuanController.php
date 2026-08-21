@@ -21,36 +21,39 @@ class PengajuanController extends Controller
     | Daftar Pengajuan Pegawai
     |--------------------------------------------------------------------------
     */
-    public function index()
-{
-    $urutan = (int) auth()->user()->urutan_verifikator;
+    public function index(): View
+    {
+        $query = Pengajuan::query()
+            ->with('status')
+            ->where('id_user', Auth::id())
+            ->latest('created_at');
 
-    $kodeStatusYangDiizinkan = match ($urutan) {
-        1 => ['DIAJUKAN', 'VERIFIKASI_1'],
-        2 => ['VERIFIKASI_2'],
-        3 => ['VERIFIKASI_3'],
-        default => [],
-    };
-
-    $pengajuan = Pengajuan::query()
-        ->with([
-            'pemohon',
-            'status',
-        ])
-        ->whereHas('status', function ($query) use ($kodeStatusYangDiizinkan) {
-            $query->whereIn(
-                'kode_status',
-                $kodeStatusYangDiizinkan
+        if ($kodeStatus = request('status')) {
+            $query->whereHas(
+                'status',
+                fn ($q) => $q->where(
+                    'kode_status',
+                    $kodeStatus
+                )
             );
-        })
-        ->orderBy('tanggal_pengajuan', 'asc')
-        ->get();
+        }
 
-    return view(
-        'verifikator.pengajuan.index',
-        compact('pengajuan', 'urutan')
-    );
-}
+        $pengajuan = $query
+            ->paginate(10)
+            ->withQueryString();
+
+        $statusList = StatusPengajuan::query()
+            ->orderBy('urutan')
+            ->get();
+
+        return view(
+            'pegawai.pengajuan.index',
+            compact(
+                'pengajuan',
+                'statusList'
+            )
+        );
+    }
 
 
     /*

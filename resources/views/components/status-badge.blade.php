@@ -1,71 +1,74 @@
 @props([
     'status' => null,
     'aktif' => false,
+
+    // kompatibilitas pemanggilan lama
+    'kode' => null,
+    'label' => null,
 ])
 
 @php
     /*
     |--------------------------------------------------------------------------
-    | Ambil kode status
+    | Normalisasi status
     |--------------------------------------------------------------------------
     |
-    | $status bisa:
+    | Bisa menerima:
+    | - Model StatusVerifikasi / StatusPencairan
+    | - String: ACC, SESUAI, SELESAI, dll
+    | - API lama: kode + label
     | - null
-    | - object model StatusVerifikasi / StatusPencairan
-    | - string kode status
     |
     */
 
-    if (is_object($status)) {
-        $kode = $status->kode_status ?? null;
-    } else {
-        $kode = $status;
-    }
+    $kodeStatus = is_object($status) ? $status->kode_status ?? null : ($status ?: $kode);
+
+    $namaStatus = is_object($status) ? $status->nama_status ?? null : null;
 
     /*
     |--------------------------------------------------------------------------
-    | Tentukan state timeline
+    | State Badge
     |--------------------------------------------------------------------------
     */
 
-    if (!$kode) {
+    if (!$kodeStatus || $kodeStatus === 'MENUNGGU') {
         if ($aktif) {
-            $label = 'Sedang Diproses';
-            $class = 'bg-amber-100 text-amber-700 border-amber-200';
-        } else {
-            $label = 'Belum Dimulai';
-            $class = 'bg-gray-100 text-gray-600 border-gray-200';
-        }
-    } elseif (in_array($kode, ['ACC', 'SESUAI'])) {
-        $label = 'Disetujui';
-        $class = 'bg-green-100 text-green-700 border-green-200';
-    } elseif ($kode === 'SELESAI') {
-        $label = 'Selesai';
-        $class = 'bg-green-100 text-green-700 border-green-200';
-    } elseif ($kode === 'REVISI') {
-        $label = 'Revisi';
-        $class = 'bg-orange-100 text-orange-700 border-orange-200';
-    } elseif (in_array($kode, ['TOLAK', 'DITOLAK', 'TIDAK_SESUAI'])) {
-        $label = 'Ditolak';
-        $class = 'bg-red-100 text-red-700 border-red-200';
-    } elseif ($kode === 'MENUNGGU') {
-        if ($aktif) {
-            $label = 'Sedang Diproses';
-            $class = 'bg-amber-100 text-amber-700 border-amber-200';
-        } else {
-            $label = 'Belum Dimulai';
-            $class = 'bg-gray-100 text-gray-600 border-gray-200';
-        }
-    } else {
-        $label = is_object($status) ? $status->nama_status ?? $kode : $kode;
+            $displayLabel = 'Sedang Diproses';
 
-        $class = 'bg-gray-100 text-gray-600 border-gray-200';
+            $classes = 'border-status-pending/30 ' . 'bg-status-pending/10 ' . 'text-status-pending';
+        } else {
+            $displayLabel = 'Belum Dimulai';
+
+            $classes = 'border-status-neutral/30 ' . 'bg-status-neutral/10 ' . 'text-status-neutral';
+        }
+    } elseif (in_array($kodeStatus, ['ACC', 'SESUAI'], true)) {
+        $displayLabel = $label ?? 'Disetujui';
+
+        $classes = 'border-status-approved/30 ' . 'bg-status-approved/10 ' . 'text-status-approved';
+    } elseif ($kodeStatus === 'SELESAI') {
+        $displayLabel = $label ?? 'Selesai';
+
+        $classes = 'border-status-done/30 ' . 'bg-status-done/10 ' . 'text-status-done';
+    } elseif ($kodeStatus === 'REVISI') {
+        $displayLabel = $label ?? 'Revisi';
+
+        $classes = 'border-status-revisi/30 ' . 'bg-status-revisi/10 ' . 'text-status-revisi';
+    } elseif (in_array($kodeStatus, ['TOLAK', 'DITOLAK', 'TIDAK_SESUAI'], true)) {
+        $displayLabel = $label ?? 'Ditolak';
+
+        $classes = 'border-status-rejected/30 ' . 'bg-status-rejected/10 ' . 'text-status-rejected';
+    } else {
+        $displayLabel = $label ?? ($namaStatus ?? ucwords(strtolower(str_replace('_', ' ', $kodeStatus))));
+
+        $classes = $aktif
+            ? 'border-status-pending/30 bg-status-pending/10 text-status-pending'
+            : 'border-status-neutral/30 bg-status-neutral/10 text-status-neutral';
     }
 @endphp
 
 <span
     {{ $attributes->merge([
-        'class' => 'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ' . $class,
+        'class' => 'inline-flex items-center rounded-full border px-3 py-1 ' . 'text-xs font-semibold ' . $classes,
     ]) }}>
-    {{ $label }}
+    {{ $displayLabel }}
 </span>
