@@ -23,10 +23,10 @@
                         <tr>
                             <td class="py-2 border-b">{{ $item->no_pengajuan }}</td>
                             <!-- Gunakan pemohon, bukan user -->
-                            <td class="py-2 border-b">{{ $item->pemohon->name ?? '-' }}</td>
-                            <td class="py-2 border-b">Rp {{ number_format($item->total_nominal, 0, ',', '.') }}</td>
+                           <!-- Gunakan pemohon, bukan user -->
+                            <td class="py-2 border-b">{{ $item->pemohon->nama_lengkap ?? $item->pemohon->name ?? '-' }}</td>
                             <td class="py-2 border-b">
-                                <x-status-badge :kode="'MENUNGGU'" :label="'Menunggu Verifikasi ' . auth()->user()->urutan_verifikator" />
+                                <x-status-badge :kode="$item->status->kode_status ?? 'UNKNOWN'" :label="$item->status->nama_status ?? 'Status Tidak Diketahui'" />
                             </td>
                             <td class="py-2 border-b">
                                 <a href="{{ route('verifikator.pengajuan.show', $item->id_pengajuan) }}" class="text-blue-600 hover:underline">Periksa</a>

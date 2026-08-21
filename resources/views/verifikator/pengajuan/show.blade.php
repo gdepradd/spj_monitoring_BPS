@@ -38,13 +38,13 @@
 
                     <div>
 
-                        <p class="text-sm text-ui-muted">
+                        <!-- <p class="text-sm text-ui-muted">
                             Nomor Pengajuan
-                        </p>
-
+                        </p> -->
+<!-- 
                         <h2 class="mt-1 text-xl font-bold text-gray-900">
                             {{ $pengajuan->no_pengajuan }}
-                        </h2>
+                        </h2> -->
 
                         <p class="mt-2 text-sm text-ui-muted">
                             Verifikasi Tahap {{ $urutanVerifikator }}
@@ -206,15 +206,15 @@
 
 
                         <div>
-                            <p
+                            <!-- <p
                                 class="text-xs font-semibold uppercase
                                        tracking-wide text-ui-muted">
                                 Nomor HP
-                            </p>
+                            </p> -->
 
-                            <p class="mt-1.5 text-sm text-gray-700">
+                            <!-- <p class="mt-1.5 text-sm text-gray-700">
                                 {{ $pengajuan->pemohon?->no_hp ?? '-' }}
-                            </p>
+                            </p> -->
                         </div>
 
                     </div>
@@ -268,17 +268,7 @@
                 </div>
 
 
-                <form method="POST"
-                    action="{{ route('verifikator.pengajuan.keputusan', $pengajuan->id_pengajuan) }}"
-                    class="p-6"
-                    x-on:submit="
-                        if (!confirm('Yakin ingin menyimpan keputusan verifikasi ini?')) {
-                            $event.preventDefault();
-                            return;
-                        }
-
-                        submitting = true;
-                    ">
+                <form action="{{ route('verifikator.pengajuan.keputusan', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
 
                     @csrf
 

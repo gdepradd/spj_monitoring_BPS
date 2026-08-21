@@ -4,10 +4,10 @@
     $user = auth()->user();
     $role = $user?->role?->nama_role;
 
-    $sidebarClass = match ($role) {
-        'pegawai' => 'bg-pov-pengajuan',
-        'verifikator' => 'bg-pov-verifikasi',
-        'ppk', 'bendahara', 'ppspm' => 'bg-pov-pencairan',
+    $sidebarClass = match (true) {
+        $role === 'pegawai' => 'bg-pov-pengajuan',
+        in_array($role, ['verifikator', 'verifikator_1', 'verifikator_2', 'verifikator_3']) => 'bg-pov-verifikasi',
+        in_array($role, ['ppk', 'bendahara', 'ppspm']) => 'bg-pov-pencairan',
         default => 'bg-status-neutral',
     };
 @endphp
@@ -26,7 +26,7 @@
     <aside class="{{ $sidebarClass }} w-full text-ui-card md:min-h-screen md:w-64">
         <div class="border-b border-ui-card/20 px-6 py-5">
             <p class="text-lg font-bold">SPJ Monitoring BPS</p>
-            <p class="mt-1 text-xs text-ui-card/80">{{ $user?->nama_lengkap }}</p>
+            <p class="mt-1 text-xs text-ui-card/80">{{ $user?->nama_lengkap ?? $user?->name ?? '-' }}</p>
         </div>
 
         <nav class="space-y-1 p-4 text-sm font-medium">
@@ -37,8 +37,22 @@
                 <a href="{{ route('pegawai.pengajuan.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat Pengajuan</a>
             @elseif($role === 'admin')
                 <a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Manajemen User</a>
-            @else
-                <p class="rounded-lg px-3 py-2 text-ui-card/80">Menu modul {{ ucfirst((string) $role) }} akan dilengkapi Dev 2.</p>
+            @elseif(in_array($role, ['verifikator', 'verifikator_1', 'verifikator_2', 'verifikator_3']))
+                <a href="{{ route('verifikator.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Dashboard</a>
+                <a href="{{ route('verifikator.pengajuan.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Daftar Pengajuan</a>
+                <a href="{{ route('verifikator.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat</a>
+            @elseif($role === 'bendahara')
+                <a href="{{ route('bendahara.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Dashboard</a>
+                <a href="{{ route('bendahara.pengajuan.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Daftar Pengajuan</a>
+                <a href="{{ route('bendahara.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat</a>
+            @elseif($role === 'ppk')
+                <a href="{{ route('ppk.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Dashboard</a>
+                <a href="{{ route('ppk.pengajuan.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Daftar Pengajuan</a>
+                <a href="{{ route('ppk.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat</a>
+            @elseif($role === 'ppspm')
+                <a href="{{ route('ppspm.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Dashboard</a>
+                <a href="{{ route('ppspm.pengajuan.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Daftar Pengajuan</a>
+                <a href="{{ route('ppspm.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat</a>
             @endif
         </nav>
     </aside>
@@ -47,7 +61,7 @@
         <header class="flex items-center justify-between border-b border-ui-border bg-ui-card px-4 py-4 md:px-8">
             <div>
                 <h1 class="text-lg font-semibold">{{ $title }}</h1>
-                <p class="text-xs text-ui-muted">Role: {{ ucfirst((string) $role) }}</p>
+                <p class="text-xs text-ui-muted">Role: {{ ucwords(str_replace('_', ' ', (string) $role)) }}</p>
             </div>
 
             @auth
@@ -77,5 +91,25 @@
         </main>
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function konfirmasiKeputusan(event, formElement) {
+            event.preventDefault();
+            Swal.fire({
+                title: 'Konfirmasi Keputusan',
+                text: "Apakah Anda yakin ingin memproses data ini?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, Proses',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    formElement.submit();
+                }
+            });
+        }
+    </script>
 </body>
 </html>

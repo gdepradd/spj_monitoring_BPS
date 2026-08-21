@@ -77,7 +77,7 @@ class PencairanService
         });
     }
 
-    public function ppkTerbitkanSpm(Pengajuan $pengajuan, array $data)
+   public function ppkTerbitkanSpm(Pengajuan $pengajuan, array $data)
     {
         return DB::transaction(function () use ($pengajuan, $data) {
             Ppk::create([
@@ -85,6 +85,8 @@ class PencairanService
                 'id_user' => auth()->id(),
                 'tanggal_proses' => now(),
                 'id_status' => 1,
+                'no_spm' => $data['no_spm'] ?? null,
+                'tgl_spm' => $data['tgl_spm'] ?? null,
                 'catatan' => $data['catatan'] ?? null,
             ]);
 
@@ -103,6 +105,7 @@ class PencairanService
                 'id_user' => auth()->id(),
                 'tanggal_proses' => now(),
                 'id_status' => 1,
+                'tgl_ajukan_kemenkeu' => $data['tgl_ajukan_kemenkeu'] ?? null,
                 'catatan' => $data['catatan'] ?? null,
             ]);
 
@@ -113,7 +116,7 @@ class PencairanService
         });
     }
 
-    public function bendaharaKonfirmasi(Pengajuan $pengajuan, array $data)
+   public function bendaharaKonfirmasi(Pengajuan $pengajuan, array $data)
     {
         return DB::transaction(function () use ($pengajuan, $data) {
             Bendahara::create([
@@ -122,6 +125,10 @@ class PencairanService
                 'tahap' => 'KONFIRMASI',
                 'tanggal_proses' => now(),
                 'id_status' => 1,
+                'no_spm' => $data['no_spm'] ?? null,
+                'no_sp2d' => $data['no_sp2d'] ?? null,
+                'tgl_sp2d' => $data['tgl_sp2d'] ?? null,
+                'tgl_transfer' => $data['tgl_transfer'] ?? null,
                 'catatan' => $data['catatan'] ?? null,
             ]);
 

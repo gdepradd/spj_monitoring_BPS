@@ -23,19 +23,22 @@
                     <tbody>
                         @forelse($riwayat as $item)
                         <tr>
-                            <td class="border py-2 px-4">{{ $item->pengajuan->no_pengajuan }}</td>
+                            <td class="border py-2 px-4">{{ $item->pengajuan->no_pengajuan ?? '-' }}</td>
                             <td class="border py-2 px-4">{{ $item->pengajuan->user->nama_lengkap ?? $item->pengajuan->user->name ?? '-' }}</td>
-                            <td class="border py-2 px-4 font-semibold text-gray-700">{{ str_replace('_', ' ', $item->tahap) }}</td>
-                            <td class="border py-2 px-4">{{ $item->tanggal_proses->format('d M Y H:i') }}</td>
+                            <td class="border py-2 px-4 font-semibold text-gray-700">Tahap {{ $item->tahap }}</td>
+                            
+                            <!-- Penyesuaian nama kolom tanggal untuk tabel verifikasi -->
                             <td class="border py-2 px-4">
-                                @if($item->id_status == 1)
-                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">ACC</span>
-                                @elseif($item->id_status == 2)
-                                    <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">REVISI</span>
-                                @else
-                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">DITOLAK</span>
-                                @endif
+                                {{ \Carbon\Carbon::parse($item->tanggal_verifikasi ?? $item->created_at)->format('d M Y H:i') }}
                             </td>
+                            
+                            <!-- Penyesuaian nama kolom status untuk tabel verifikasi -->
+                            <td class="border py-2 px-4">
+    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-bold">
+        {{ $item->statusVerifikasi->nama_status ?? ($item->id_status_verifikasi == 1 ? 'ACC' : ($item->id_status_verifikasi == 2 ? 'REVISI' : 'DITOLAK')) }}
+    </span>
+</td>
+                            
                             <td class="border py-2 px-4 text-sm">{{ $item->catatan ?? '-' }}</td>
                         </tr>
                         @empty

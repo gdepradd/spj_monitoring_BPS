@@ -35,16 +35,16 @@
 
                 <div class="p-6">
                     @if($pengajuan->status->kode_status === 'PROSES_PPSPM')
-                        <form action="{{ route('ppspm.pengajuan.ajukan-kemenkeu', $pengajuan->id_pengajuan) }}" method="POST">
+                        <form action="{{ route('ppspm.pengajuan.ajukan-kemenkeu', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                             @csrf
                             <div class="space-y-5">
                                 <!-- Jika Dev 1 sudah migrate kolom tgl_ajukan_kemenkeu, hilangkan komentar blok ini -->
-                                <!--
+                                
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700">Tanggal Pengajuan Kemenkeu</label>
                                     <input type="date" name="tgl_ajukan_kemenkeu" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                 </div>
-                                -->
+                               
 
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700">Catatan (Opsional)</label>

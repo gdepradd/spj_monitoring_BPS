@@ -14,7 +14,7 @@
                 <div class="space-y-2 text-sm">
                     <p><strong>Nama Lengkap:</strong> {{ $pengajuan->user->nama_lengkap ?? $pengajuan->user->name ?? '-' }}</p>
                     <p><strong>Email:</strong> {{ $pengajuan->user->email ?? '-' }}</p>
-                    <p><strong>No. HP:</strong> {{ $pengajuan->user->no_hp ?? '-' }}</p>
+                    <!-- <p><strong>No. HP:</strong> {{ $pengajuan->user->no_hp ?? '-' }}</p> -->
                     <p><strong>Tanggal Pengajuan:</strong> {{ $pengajuan->tanggal_pengajuan->format('d M Y') }}</p>
                     <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p>
                     <p class="text-lg font-bold text-blue-600 mt-2">Total Nominal: Rp {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}</p>
@@ -28,7 +28,7 @@
                     <!-- FORM TAHAP AWAL (PILIH METODE) -->
                     <!-- FORM TAHAP AWAL (PILIH METODE ATAU TOLAK) -->
                     <h3 class="font-bold text-lg mb-4 border-b pb-2">Keputusan & Metode Pembayaran</h3>
-                    <form action="{{ route('bendahara.pengajuan.ajukan', $pengajuan->id_pengajuan) }}" method="POST" x-data="{ keputusan: '', metode: '' }">
+                    <form action="{{ route('bendahara.pengajuan.ajukan', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                         @csrf
                         <div class="space-y-4">
                             
@@ -73,14 +73,13 @@
                                 <textarea name="catatan" rows="3" class="w-full border-gray-300 rounded-md shadow-sm mt-1" :required="keputusan == '2' || keputusan == '3'"></textarea>
                             </div>
 
-                            <button type="submit" class="w-full text-white font-bold py-2 px-4 rounded mt-4"
-                                    :class="keputusan == '2' || keputusan == '3' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'">
-                                <span x-show="keputusan == '' || keputusan == '1'">
-                                    <span x-show="metode !== 'UP_TUP'">Ajukan Proses</span>
-                                    <span x-show="metode === 'UP_TUP'" style="display: none;">Konfirmasi Bayar & Selesai</span>
-                                </span>
-                                <span x-show="keputusan == '2' || keputusan == '3'" style="display: none;">Simpan Keputusan</span>
-                            </button>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4 transition">
+    <span x-show="keputusan == '' || keputusan == '1'">
+        <span x-show="metode !== 'UP_TUP'">Ajukan Proses</span>
+        <span x-show="metode === 'UP_TUP'" style="display: none;">Konfirmasi Bayar & Selesai</span>
+    </span>
+    <span x-show="keputusan == '2' || keputusan == '3'" style="display: none;">Simpan Keputusan</span>
+</button>
                         </div>
                     </form>
 

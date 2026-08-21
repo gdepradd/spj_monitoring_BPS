@@ -12,9 +12,66 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
+                    
+                    <!-- Menu Verifikator -->
+                    @if(Auth::user()->hasRole('verifikator_1') || Auth::user()->hasRole('verifikator_2') || Auth::user()->hasRole('verifikator_3'))
+                        <x-nav-link :href="route('verifikator.dashboard')" :active="request()->routeIs('verifikator.dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('verifikator.pengajuan.index')" :active="request()->routeIs('verifikator.pengajuan.*')">
+                            {{ __('Daftar Pengajuan') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('verifikator.riwayat')" :active="request()->routeIs('verifikator.riwayat')">
+                            {{ __('Riwayat') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Menu Bendahara -->
+                    @if(Auth::user()->hasRole('bendahara'))
+                        <x-nav-link :href="route('bendahara.dashboard')" :active="request()->routeIs('bendahara.dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('bendahara.pengajuan.index')" :active="request()->routeIs('bendahara.pengajuan.*')">
+                            {{ __('Daftar Pengajuan') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('bendahara.riwayat')" :active="request()->routeIs('bendahara.riwayat')">
+                            {{ __('Riwayat') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Menu PPK -->
+                    @if(Auth::user()->hasRole('ppk'))
+                        <x-nav-link :href="route('ppk.dashboard')" :active="request()->routeIs('ppk.dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('ppk.pengajuan.index')" :active="request()->routeIs('ppk.pengajuan.*')">
+                            {{ __('Daftar Pengajuan') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('ppk.riwayat')" :active="request()->routeIs('ppk.riwayat')">
+                            {{ __('Riwayat') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Menu PPSPM -->
+                    @if(Auth::user()->hasRole('ppspm'))
+                        <x-nav-link :href="route('ppspm.dashboard')" :active="request()->routeIs('ppspm.dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('ppspm.pengajuan.index')" :active="request()->routeIs('ppspm.pengajuan.*')">
+                            {{ __('Daftar Pengajuan') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('ppspm.riwayat')" :active="request()->routeIs('ppspm.riwayat')">
+                            {{ __('Riwayat') }}
+                        </x-nav-link>
+                    @endif
+
+                    <!-- Menu Default / Pegawai (Jika tidak memiliki role di atas) -->
+                    @if(!Auth::user()->hasRole('verifikator_1') && !Auth::user()->hasRole('verifikator_2') && !Auth::user()->hasRole('verifikator_3') && !Auth::user()->hasRole('bendahara') && !Auth::user()->hasRole('ppk') && !Auth::user()->hasRole('ppspm'))
+                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                    @endif
+
                 </div>
             </div>
 
@@ -67,9 +124,66 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
+            
+            <!-- Menu Verifikator Mobile -->
+            @if(Auth::user()->hasRole('verifikator_1') || Auth::user()->hasRole('verifikator_2') || Auth::user()->hasRole('verifikator_3'))
+                <x-responsive-nav-link :href="route('verifikator.dashboard')" :active="request()->routeIs('verifikator.dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('verifikator.pengajuan.index')" :active="request()->routeIs('verifikator.pengajuan.*')">
+                    {{ __('Daftar Pengajuan') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('verifikator.riwayat')" :active="request()->routeIs('verifikator.riwayat')">
+                    {{ __('Riwayat') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <!-- Menu Bendahara Mobile -->
+            @if(Auth::user()->hasRole('bendahara'))
+                <x-responsive-nav-link :href="route('bendahara.dashboard')" :active="request()->routeIs('bendahara.dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('bendahara.pengajuan.index')" :active="request()->routeIs('bendahara.pengajuan.*')">
+                    {{ __('Daftar Pengajuan') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('bendahara.riwayat')" :active="request()->routeIs('bendahara.riwayat')">
+                    {{ __('Riwayat') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <!-- Menu PPK Mobile -->
+            @if(Auth::user()->hasRole('ppk'))
+                <x-responsive-nav-link :href="route('ppk.dashboard')" :active="request()->routeIs('ppk.dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('ppk.pengajuan.index')" :active="request()->routeIs('ppk.pengajuan.*')">
+                    {{ __('Daftar Pengajuan') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('ppk.riwayat')" :active="request()->routeIs('ppk.riwayat')">
+                    {{ __('Riwayat') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <!-- Menu PPSPM Mobile -->
+            @if(Auth::user()->hasRole('ppspm'))
+                <x-responsive-nav-link :href="route('ppspm.dashboard')" :active="request()->routeIs('ppspm.dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('ppspm.pengajuan.index')" :active="request()->routeIs('ppspm.pengajuan.*')">
+                    {{ __('Daftar Pengajuan') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('ppspm.riwayat')" :active="request()->routeIs('ppspm.riwayat')">
+                    {{ __('Riwayat') }}
+                </x-responsive-nav-link>
+            @endif
+
+            <!-- Menu Default Mobile -->
+            @if(!Auth::user()->hasRole('verifikator_1') && !Auth::user()->hasRole('verifikator_2') && !Auth::user()->hasRole('verifikator_3') && !Auth::user()->hasRole('bendahara') && !Auth::user()->hasRole('ppk') && !Auth::user()->hasRole('ppspm'))
+                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+            @endif
+
         </div>
 
         <!-- Responsive Settings Options -->

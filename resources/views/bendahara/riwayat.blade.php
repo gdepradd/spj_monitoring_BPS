@@ -26,7 +26,7 @@
                             <td class="border py-2 px-4">{{ $item->pengajuan->no_pengajuan }}</td>
                             <td class="border py-2 px-4">{{ $item->pengajuan->user->nama_lengkap ?? $item->pengajuan->user->name ?? '-' }}</td>
                             <td class="border py-2 px-4 font-semibold text-gray-700">{{ str_replace('_', ' ', $item->tahap) }}</td>
-                            <td class="border py-2 px-4">{{ $item->tanggal_proses->format('d M Y H:i') }}</td>
+                            <td class="border py-2 px-4">{{ \Carbon\Carbon::parse($item->tanggal_proses)->format('d M Y H:i') }}</td>
                             <td class="border py-2 px-4">
                                 @if($item->id_status == 1)
                                     <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">ACC</span>
