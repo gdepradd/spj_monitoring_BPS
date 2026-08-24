@@ -123,71 +123,80 @@
                 </div>
 
 
-                {{-- Informasi utama --}}
+               {{-- Informasi utama --}}
                 <dl class="mt-6 grid gap-5 sm:grid-cols-2">
 
                     <div>
                         <dt class="text-xs font-medium uppercase text-ui-muted">
-                            Tanggal
+                            Tanggal Pengajuan
                         </dt>
-
                         <dd class="mt-1">
-                            {{ \Carbon\Carbon::parse(
-                                $pengajuan->tanggal_pengajuan
-                            )->format('d M Y') }}
+                            {{ \Carbon\Carbon::parse($pengajuan->tanggal_pengajuan)->translatedFormat('d F Y') }}
                         </dd>
                     </div>
 
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">
+                            Tanggal Kegiatan
+                        </dt>
+                        <dd class="mt-1">
+                            {{ $pengajuan->bulan_kegiatan ? \Carbon\Carbon::parse($pengajuan->bulan_kegiatan)->translatedFormat('d F Y') : '-' }}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">
+                            Tim Pengaju
+                        </dt>
+                        <dd class="mt-1">
+                            {{ $pengajuan->tim_pengaju ?? '-' }}
+                        </dd>
+                    </div>
 
                     <div>
                         <dt class="text-xs font-medium uppercase text-ui-muted">
                             Nominal
                         </dt>
-
                         <dd class="mt-1 font-semibold">
-                            Rp {{ number_format(
-                                (float) $pengajuan->total_nominal,
-                                2,
-                                ',',
-                                '.'
-                            ) }}
+                            Rp {{ number_format((float) $pengajuan->total_nominal, 2, ',', '.') }}
                         </dd>
                     </div>
 
+                    <div class="sm:col-span-2">
+                        <dt class="text-xs font-medium uppercase text-ui-muted">
+                            Nama Penerima
+                        </dt>
+                        <dd class="mt-1 font-semibold">
+                            {{ $pengajuan->nama_penerima ?? '-' }}
+                        </dd>
+                    </div>
 
                     <div class="sm:col-span-2">
                         <dt class="text-xs font-medium uppercase text-ui-muted">
                             Perihal
                         </dt>
-
                         <dd class="mt-1">
                             {{ $pengajuan->perihal }}
                         </dd>
                     </div>
 
-
                     <div class="sm:col-span-2">
                         <dt class="text-xs font-medium uppercase text-ui-muted">
                             Keterangan
                         </dt>
-
                         <dd class="mt-1 whitespace-pre-line">
                             {{ $pengajuan->keterangan ?? '-' }}
                         </dd>
                     </div>
 
-
                     @if ($pengajuan->catatan_pengaju)
                         <div class="sm:col-span-2">
-
                             <dt class="text-xs font-medium uppercase text-ui-muted">
                                 Catatan Pengaju
                             </dt>
-
                             <dd class="mt-1 whitespace-pre-line">
                                 {{ $pengajuan->catatan_pengaju }}
                             </dd>
-
                         </div>
                     @endif
 
@@ -473,8 +482,7 @@
                     @endif
 
 
-
-                    {{-- ================================================= --}}
+{{-- ================================================= --}}
                     {{-- LS BENDAHARA / LS PIHAK KETIGA --}}
                     {{-- ================================================= --}}
                     @if (
@@ -490,9 +498,7 @@
                         {{-- Pengajuan SPP --}}
                         <x-timeline-item
                             label="Bendahara — Pengajuan SPP"
-                            :status="
-                                $bendaharaSpp?->statusPencairan
-                            "
+                            :status="$bendaharaSpp ? 'SELESAI' : null"
                             :aktif="
                                 $pengajuan->isTahapAktif(
                                     'MENUNGGU_PENCAIRAN'
@@ -510,7 +516,7 @@
                         {{-- PPK --}}
                         <x-timeline-item
                             label="PPK — Penerbitan SPM"
-                            :status="$ppk?->statusPencairan"
+                            :status="$ppk ? 'SELESAI' : null"
                             :aktif="
                                 $pengajuan->isTahapAktif(
                                     'PROSES_PPK'
@@ -527,7 +533,7 @@
                         {{-- PPSPM --}}
                         <x-timeline-item
                             label="PPSPM — Pengajuan ke Kemenkeu"
-                            :status="$ppspm?->statusPencairan"
+                            :status="$ppspm ? 'SELESAI' : null"
                             :aktif="
                                 $pengajuan->isTahapAktif(
                                     'PROSES_PPSPM'
@@ -544,9 +550,7 @@
                         {{-- Konfirmasi Bendahara --}}
                         <x-timeline-item
                             label="Bendahara — Konfirmasi Pencairan"
-                            :status="
-                                $bendaharaKonfirmasi?->statusPencairan
-                            "
+                            :status="$bendaharaKonfirmasi ? 'SELESAI' : null"
                             :aktif="
                                 $pengajuan->isTahapAktif(
                                     'PROSES_KONFIRMASI_BENDAHARA'
@@ -574,9 +578,7 @@
 
                         <x-timeline-item
                             label="Bendahara — Pembayaran Langsung"
-                            :status="
-                                $bendaharaLangsung?->statusPencairan
-                            "
+                            :status="$bendaharaLangsung ? 'SELESAI' : null"
                             :aktif="
                                 $pengajuan->isTahapAktif(
                                     'MENUNGGU_PENCAIRAN'
@@ -618,7 +620,6 @@
                         "
                         :catatan="null"
                     />
-
                 </div>
 
             </div>

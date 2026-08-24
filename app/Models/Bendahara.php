@@ -25,6 +25,9 @@ class Bendahara extends Model
         'tgl_sp2d',
         'id_status',
         'catatan',
+        'no_rekening',
+        'nama_bank',
+        'atas_nama_rekening',
     ];
 
     public function pengajuan()

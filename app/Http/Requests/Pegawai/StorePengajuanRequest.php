@@ -12,15 +12,17 @@ class StorePengajuanRequest extends FormRequest
     }
 
     public function rules(): array
-    {
-        return [
-            'tanggal_pengajuan' => ['required', 'date'],
-            'perihal' => ['required', 'string', 'max:255'],
-            'keterangan' => ['required', 'string', 'max:5000'],
-            'total_nominal' => ['required', 'numeric', 'min:0', 'max:9999999999999.99'],
-        ];
-    }
-
+{
+    return [
+        'tanggal_pengajuan' => ['required', 'date'],
+        'bulan_kegiatan'    => ['required', 'date'],
+        'tim_pengaju'       => ['required', 'string', 'max:255'],
+        'nama_penerima'     => ['required', 'string', 'max:255'],
+        'keterangan'        => ['required', 'string'],
+        'total_nominal'     => ['required', 'numeric', 'min:0'],
+        'catatan_pengaju'   => ['nullable', 'string'],
+    ];
+}
     public function messages(): array
     {
         return [

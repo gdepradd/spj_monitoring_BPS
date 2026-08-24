@@ -14,11 +14,11 @@
                 @error('tanggal_pengajuan')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
-            <div>
+            <!-- <div>
                 <x-input-label for="perihal" value="Perihal" />
                 <x-text-input id="perihal" name="perihal" value="{{ old('perihal', $pengajuan->perihal) }}" required />
                 @error('perihal')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
-            </div>
+            </div> -->
 
             <div>
                 <x-input-label for="keterangan" value="Keterangan / Ringkasan Dokumen SPJ" />

@@ -13,10 +13,13 @@
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Informasi Pemohon</h3>
                 <div class="space-y-2 text-sm">
                     <p><strong>Nama Lengkap:</strong> {{ $pengajuan->user->nama_lengkap ?? $pengajuan->user->name ?? '-' }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Tim Pengaju:</span> {{ $pengajuan->tim_pengaju ?? '-' }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Bulan Kegiatan:</span> {{ $pengajuan->bulan_kegiatan ?? '-' }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Nama Penerima:</span> {{ $pengajuan->nama_penerima ?? '-' }}</p>
                     <p><strong>Email:</strong> {{ $pengajuan->user->email ?? '-' }}</p>
                     <!-- <p><strong>No. HP:</strong> {{ $pengajuan->user->no_hp ?? '-' }}</p> -->
                     <p><strong>Tanggal Pengajuan:</strong> {{ $pengajuan->tanggal_pengajuan->format('d M Y') }}</p>
-                    <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p>
+                    <!-- <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p> -->
                     <p class="text-lg font-bold text-blue-600 mt-2">Total Nominal: Rp {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}</p>
                 </div>
             </div>
@@ -92,27 +95,42 @@
                         @csrf
                         <div class="space-y-4">
                             <!-- Field untuk LS Pihak Ketiga -->
-                            @if($pengajuan->metode_pembayaran === 'LS_PIHAK_KETIGA')
-                                <div>
-                                    <label class="block font-medium text-sm text-gray-700">No. SPM</label>
-                                    <input type="text" name="no_spm" required class="w-full border-gray-300 rounded-md shadow-sm mt-1">
-                                </div>
-                                <div>
-                                    <label class="block font-medium text-sm text-gray-700">No. SP2D</label>
-                                    <input type="text" name="no_sp2d" required class="w-full border-gray-300 rounded-md shadow-sm mt-1">
-                                </div>
-                                <div>
-                                    <label class="block font-medium text-sm text-gray-700">Tanggal SP2D</label>
-                                    <input type="date" name="tgl_sp2d" required class="w-full border-gray-300 rounded-md shadow-sm mt-1">
-                                </div>
-                            @endif
+                            @if($pengajuan->metode_pembayaran === 'LS_BENDAHARA')
+    @php 
+        $dataPpspm = $pengajuan->ppspm->sortByDesc('id_ppspm')->first(); 
+    @endphp
+    @if($dataPpspm)
+        <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+            <h4 class="font-bold mb-2">Informasi Dokumen Pencairan (PPSPM)</h4>
+            <div class="grid grid-cols-2 gap-2">
+                <p><strong>No. SPM:</strong> {{ $dataPpspm->no_spm ?? '-' }}</p>
+                <p><strong>Tanggal SPM:</strong> {{ $dataPpspm->tgl_spm ? \Carbon\Carbon::parse($dataPpspm->tgl_spm)->format('d/m/Y') : '-' }}</p>
+                <p><strong>No. SP2D:</strong> {{ $dataPpspm->no_sp2d ?? '-' }}</p>
+                <p><strong>Tanggal SP2D:</strong> {{ $dataPpspm->tgl_sp2d ? \Carbon\Carbon::parse($dataPpspm->tgl_sp2d)->format('d/m/Y') : '-' }}</p>
+            </div>
+        </div>
+    @endif
+@endif
 
                             <!-- Selalu muncul -->
                             <div>
                                 <label class="block font-medium text-sm text-gray-700">Tanggal Transfer/Konfirmasi</label>
                                 <input type="date" name="tgl_transfer" required class="w-full border-gray-300 rounded-md shadow-sm mt-1">
                             </div>
+                            <div class="mb-4 mt-4">
+    <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
+    <input type="text" name="nama_bank" placeholder="Contoh: BRI / BNI / Mandiri" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+</div>
 
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
+    <input type="text" name="no_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+</div>
+
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
+    <input type="text" name="atas_nama_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+</div>
                             <div>
                                 <label class="block font-medium text-sm text-gray-700">Catatan <span class="text-gray-400">(Opsional)</span></label>
                                 <textarea name="catatan" rows="3" class="w-full border-gray-300 rounded-md shadow-sm mt-1"></textarea>
@@ -129,31 +147,30 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 md:col-span-2">
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Linimasa Pengajuan</h3>
                 <ol class="relative border-l border-gray-200 ml-3">
-                    @foreach($pengajuan->riwayat_lengkap as $riwayat)
-                    <li class="mb-8 ml-6">
-                        <span class="absolute flex items-center justify-center w-4 h-4 rounded-full -left-2 ring-4 ring-white
-                            {{ $riwayat['status'] === 'Selesai' ? 'bg-green-500' : ($riwayat['status'] === 'Sedang Diproses' ? 'bg-blue-500' : ($riwayat['status'] === 'Revisi' || $riwayat['status'] === 'Ditolak' ? 'bg-red-500' : 'bg-gray-300')) }}">
-                        </span>
-                        <h3 class="flex items-center mb-1 text-md font-semibold text-gray-900">
-                            {{ $riwayat['judul'] }} 
-                        </h3>
-                        <time class="block mb-2 text-sm font-normal leading-none text-gray-400">
-                            {{ $riwayat['waktu'] ? \Carbon\Carbon::parse($riwayat['waktu'])->format('d M Y, H:i') : '-' }}
-                        </time>
-                        <p class="text-sm font-normal text-gray-500">
-                            <strong>Aktor:</strong> {{ $riwayat['aktor'] }} <br>
-                            <strong>Status:</strong> 
-                            <span class="{{ $riwayat['status'] === 'Selesai' ? 'text-green-600' : ($riwayat['status'] === 'Sedang Diproses' ? 'text-blue-600' : 'text-gray-600') }}">
-                                {{ $riwayat['status'] }}
-                            </span>
-                        </p>
-                        @if($riwayat['catatan'])
-                            <p class="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-200">
-                                <strong>Catatan:</strong> {{ $riwayat['catatan'] }}
-                            </p>
-                        @endif
-                    </li>
-                    @endforeach
+                    @foreach($pengajuan->riwayat_lengkap as $item)
+    <div class="mb-4 flex items-start space-x-3">
+        @php
+            $isSelesai = in_array(strtolower($item['status']), ['selesai', 'disetujui', 'acc']);
+            $isRevisi = strtolower($item['status']) === 'revisi';
+        @endphp
+        
+        <span class="inline-block h-3 w-3 rounded-full mt-1.5 {{ $isSelesai ? 'bg-green-500' : ($isRevisi ? 'bg-yellow-500' : 'bg-red-500') }}"></span>
+        
+        <div>
+            <p class="font-semibold text-gray-900">{{ $item['judul'] }}</p>
+            <p class="text-xs text-gray-500">{{ $item['waktu'] ? \Carbon\Carbon::parse($item['waktu'])->format('d M Y, H:i') : '-' }}</p>
+            <p class="text-xs text-gray-700">Aktor: {{ $item['aktor'] }}</p>
+            <p class="text-xs font-medium {{ $isSelesai ? 'text-green-600' : ($isRevisi ? 'text-yellow-600' : 'text-red-600') }}">
+                Status: {{ $item['status'] }}
+            </p>
+            @if(!empty($item['catatan']))
+                <div class="mt-1 rounded bg-gray-100 p-2 text-xs text-gray-700">
+                    <strong>Catatan:</strong> {{ $item['catatan'] }}
+                </div>
+            @endif
+        </div>
+    </div>
+@endforeach
                 </ol>
             </div>
         </div>

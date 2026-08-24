@@ -38,7 +38,7 @@ class AuthenticatedSessionController extends Controller
     return match ($role) {
         'pegawai' => redirect()->route('pegawai.dashboard'),
 
-        'verifikator' => redirect('/verifikator/dashboard'),
+        'verifikator' => redirect('/verifikator/pengajuan'),
 
         'ppk' => redirect('/ppk/dashboard'),
 

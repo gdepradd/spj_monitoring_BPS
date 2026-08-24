@@ -13,10 +13,13 @@
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Informasi Pemohon</h3>
                 <div class="space-y-2 text-sm">
                     <p><strong>Nama Lengkap:</strong> {{ $pengajuan->user->nama_lengkap ?? $pengajuan->user->name ?? '-' }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Tim Pengaju:</span> {{ $pengajuan->tim_pengaju ?? '-' }}</p>
                     <p><strong>Email:</strong> {{ $pengajuan->user->email ?? '-' }}</p>
                     <!-- <p><strong>No. HP:</strong> {{ $pengajuan->user->no_hp ?? '-' }}</p> -->
                     <p><strong>Tanggal Pengajuan:</strong> {{ $pengajuan->tanggal_pengajuan->format('d M Y') }}</p>
-                    <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p>
+                    <!-- <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p> -->
+                    <p class="text-sm text-gray-700"><span class="font-bold">Bulan Kegiatan:</span> {{ $pengajuan->bulan_kegiatan ?? '-' }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Nama Penerima:</span> {{ $pengajuan->nama_penerima ?? '-' }}</p>
                     <p><strong>Metode Pembayaran:</strong> <span class="bg-gray-200 px-2 py-1 rounded">{{ $pengajuan->metode_pembayaran }}</span></p>
                     <p class="text-lg font-bold text-purple-600 mt-2">Total Nominal: Rp {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}</p>
                 </div>
@@ -78,8 +81,8 @@
                             {{ $riwayat['judul'] }} 
                         </h3>
                         <time class="block mb-2 text-sm font-normal leading-none text-gray-400">
-                            {{ $riwayat['waktu'] ? \Carbon\Carbon::parse($riwayat['waktu'])->format('d M Y, H:i') : '-' }}
-                        </time>
+    {{ $riwayat['waktu'] ? \Carbon\Carbon::parse($riwayat['waktu'])->format('d/m/y H:i') : '-' }}
+</time>
                         <p class="text-sm font-normal text-gray-500">
                             <strong>Aktor:</strong> {{ $riwayat['aktor'] }} <br>
                             <strong>Status:</strong> 

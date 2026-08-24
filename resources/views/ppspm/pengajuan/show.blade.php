@@ -13,11 +13,14 @@
                 <h3 class="font-bold text-lg mb-4 border-b pb-2">Informasi Pemohon</h3>
                 <div class="space-y-2 text-sm">
                     <p><strong>Nama Lengkap:</strong> {{ $pengajuan->user->nama_lengkap ?? $pengajuan->user->name ?? '-' }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Tim Pengaju:</span> {{ $pengajuan->tim_pengaju ?? '-' }}</p>
                     <p><strong>Email:</strong> {{ $pengajuan->user->email ?? '-' }}</p>
                     <p><strong>No. HP:</strong> {{ $pengajuan->user->no_hp ?? '-' }}</p>
                     <p><strong>Tanggal Pengajuan:</strong> {{ $pengajuan->tanggal_pengajuan->format('d M Y') }}</p>
                     <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p>
                     <p><strong>Metode Pembayaran:</strong> <span class="bg-gray-200 px-2 py-1 rounded">{{ $pengajuan->metode_pembayaran }}</span></p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Bulan Kegiatan:</span> {{ $pengajuan->bulan_kegiatan ?? '-' }}</p>
+                    <p class="text-sm text-gray-700"><span class="font-bold">Nama Penerima:</span> {{ $pengajuan->nama_penerima ?? '-' }}</p>
                     <p class="text-lg font-bold text-indigo-600 mt-2">Total Nominal: Rp {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}</p>
                 </div>
             </div>
@@ -45,7 +48,24 @@
                                     <input type="date" name="tgl_ajukan_kemenkeu" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                 </div>
                                
-
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700">No. SPM</label>
+        <input type="text" name="no_spm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Tanggal SPM</label>
+        <input type="date" name="tgl_spm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">No. SP2D</label>
+        <input type="text" name="no_sp2d" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Tanggal SP2D</label>
+        <input type="date" name="tgl_sp2d" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+    </div>
+</div>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700">Catatan (Opsional)</label>
                                     <textarea name="catatan" rows="3" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>

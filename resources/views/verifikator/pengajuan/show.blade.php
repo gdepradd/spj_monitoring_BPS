@@ -97,7 +97,7 @@
                         </div>
 
 
-                        <div class="sm:col-span-2">
+                        <!-- <div class="sm:col-span-2">
                             <dt
                                 class="text-xs font-semibold uppercase
                                        tracking-wide text-ui-muted">
@@ -107,8 +107,36 @@
                             <dd class="mt-1.5 text-sm text-gray-900">
                                 {{ $pengajuan->perihal ?? '-' }}
                             </dd>
-                        </div>
+                        </div> -->
+                        <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">
+                            Tim Pengaju
+                        </dt>
 
+                        <dd class="mt-1">
+                            {{ $pengajuan->tim_pengaju ?? '-' }}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">
+                            Bulan Kegiatan
+                        </dt>
+
+                        <dd class="mt-1">
+                            {{ $pengajuan->bulan_kegiatan ? \Carbon\Carbon::parse($pengajuan->bulan_kegiatan)->translatedFormat('F Y') : '-' }}
+                        </dd>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <dt class="text-xs font-medium uppercase text-ui-muted">
+                            Nama Penerima
+                        </dt>
+
+                        <dd class="mt-1 font-semibold">
+                            {{ $pengajuan->nama_penerima ?? '-' }}
+                        </dd>
+                    </div>    
 
                         <div class="sm:col-span-2">
 

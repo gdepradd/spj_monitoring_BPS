@@ -19,6 +19,10 @@ class Ppspm extends Model
         'id_status',
         'tgl_ajukan_kemenkeu',
         'catatan',
+        'no_spm',
+        'tgl_spm',
+        'no_sp2d',
+        'tgl_sp2d',
     ];
 
     public function pengajuan()

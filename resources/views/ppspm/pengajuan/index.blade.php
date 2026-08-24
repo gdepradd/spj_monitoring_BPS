@@ -88,9 +88,9 @@
                                         No. Pengajuan
                                     </th>
 
-                                    <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                                    <!-- <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-gray-500">
                                         Pengaju
-                                    </th>
+                                    </th> -->
 
                                     <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-gray-500">
                                         Perihal
@@ -134,11 +134,11 @@
                                         </td>
 
 
-                                        <td class="max-w-[250px] px-5 py-4">
+                                        <!-- <td class="max-w-[250px] px-5 py-4">
                                             <p class="truncate text-sm text-gray-700" title="{{ $item->perihal }}">
                                                 {{ $item->perihal ?? '-' }}
                                             </p>
-                                        </td>
+                                        </td> -->
 
 
                                         <td class="whitespace-nowrap px-5 py-4">

@@ -17,39 +17,67 @@
 
     <div class="overflow-hidden rounded-xl border border-ui-border bg-ui-card">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-ui-border text-sm">
-                <thead class="bg-ui-page text-left text-ui-muted">
-                    <tr>
-                        <th class="px-4 py-3">No. Pengajuan</th>
-                        <th class="px-4 py-3">Tanggal</th>
-                        <th class="px-4 py-3">Perihal</th>
-                        <th class="px-4 py-3">Nominal</th>
-                        <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-ui-border">
-                    @forelse($pengajuan as $item)
-                        <tr>
-                            <td class="px-4 py-3 font-medium">{{ $item->no_pengajuan }}</td>
-                            <td class="px-4 py-3">{{ $item->tanggal_pengajuan->format('d/m/Y') }}</td>
-                            <td class="px-4 py-3">{{ $item->perihal }}</td>
-                            <td class="px-4 py-3">Rp {{ number_format((float) $item->total_nominal, 2, ',', '.') }}</td>
-                            <td class="px-4 py-3"><x-status-badge :kode="$item->status->kode_status" :label="$item->status->nama_status" /></td>
-                            <td class="px-4 py-3">
-                                <a href="{{ route('pegawai.pengajuan.show', $item) }}" class="font-medium text-pov-pengajuan hover:underline">Detail</a>
-                                @if($item->status->kode_status === 'REVISI')
-                                    <span class="mx-1 text-ui-muted">·</span>
-                                    <a href="{{ route('pegawai.pengajuan.edit', $item) }}" class="font-medium text-status-revisi hover:underline">Perbaiki</a>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="6" class="px-4 py-10 text-center text-ui-muted">Belum ada pengajuan.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b border-ui-border text-xs font-semibold uppercase text-ui-muted">
+                <th class="px-6 py-4">No. Pengajuan</th>
+                <th class="px-6 py-4">Tanggal</th>
+                <th class="px-6 py-4">Nominal</th>
+                <th class="px-6 py-4">Status</th>
+                <th class="px-6 py-4">Aksi</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-ui-border text-sm">
+            @forelse($pengajuan as $item)
+            <tr class="hover:bg-ui-page/50 transition">
+                <td class="px-6 py-5 font-medium text-ui-text">
+                    {{ $item->no_pengajuan }}
+                </td>
+                <td class="px-6 py-5 text-ui-text">
+                    {{ \Carbon\Carbon::parse($item->tanggal_pengajuan)->format('d/m/Y') }}
+                </td>
+                <td class="px-6 py-5 font-medium text-ui-text">
+                    Rp {{ number_format((float)$item->total_nominal, 0, ',', '.') }}
+                </td>
+                <td class="px-6 py-5">
+                    <span
+                        @class([
+                            'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
+                            'bg-amber-100 text-amber-700' => in_array($item->status?->kode_status, [
+                                'DIAJUKAN', 'VERIFIKASI_1', 'VERIFIKASI_2', 'VERIFIKASI_3', 
+                                'MENUNGGU_PENCAIRAN', 'PROSES_PPK', 'PROSES_PPSPM', 'PROSES_KONFIRMASI_BENDAHARA'
+                            ]),
+                            'bg-orange-100 text-orange-700' => $item->status?->kode_status === 'REVISI',
+                            'bg-red-100 text-red-700' => $item->status?->kode_status === 'DITOLAK',
+                            'bg-green-100 text-green-700' => $item->status?->kode_status === 'SELESAI',
+                        ])
+                    >
+                        {{ $item->status?->nama_status ?? '-' }}
+                    </span>
+                </td>
+                <td class="px-6 py-5">
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('pegawai.pengajuan.show', $item) }}" class="font-medium text-blue-600 hover:underline">
+                            Detail
+                        </a>
+                        @if($item->status?->kode_status === 'REVISI')
+                            <a href="{{ route('pegawai.pengajuan.edit', $item) }}" class="font-medium text-orange-600 hover:underline">
+                                Perbaiki
+                            </a>
+                        @endif
+                    </div>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="5" class="px-6 py-8 text-center text-sm text-ui-muted">
+                    Tidak ada pengajuan.
+                </td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
     </div>
 
     <div class="mt-5">{{ $pengajuan->links() }}</div>

@@ -72,57 +72,31 @@ class PengajuanController extends Controller
     | Simpan Pengajuan Baru
     |--------------------------------------------------------------------------
     */
-    public function store(
-        StorePengajuanRequest $request
-    ): RedirectResponse {
+    public function store(StorePengajuanRequest $request): RedirectResponse
+    {
         $statusDiajukan = StatusPengajuan::query()
             ->where('kode_status', 'DIAJUKAN')
             ->firstOrFail();
 
-        $pengajuan = DB::transaction(
-            function () use ($request, $statusDiajukan) {
+        $pengajuan = DB::transaction(function () use ($request, $statusDiajukan) {
+            return Pengajuan::create([
+                'no_pengajuan' => $this->generateNoPengajuan(
+                    \Carbon\Carbon::parse($request->tanggal_pengajuan)->format('Ymd')
+                ),
+                'id_user' => auth()->id(),
+                'tanggal_pengajuan' => $request->tanggal_pengajuan,
+                'perihal' => \Illuminate\Support\Str::limit($request->keterangan, 100, '...'),
+                'keterangan' => $request->keterangan,
+                'total_nominal' => $request->total_nominal,
+                'id_status' => $statusDiajukan->id_status,
+                'bulan_kegiatan' => $request->bulan_kegiatan,
+                'tim_pengaju' => $request->tim_pengaju,
+                'nama_penerima' => $request->nama_penerima,
+                'catatan_pengaju' => $request->catatan_pengaju,
+            ]);
+        });
 
-                return Pengajuan::create([
-                    'no_pengajuan' => $this->generateNoPengajuan(
-                        $request
-                            ->date('tanggal_pengajuan')
-                            ->format('Ymd')
-                    ),
-
-                    'id_user' => Auth::id(),
-
-                    'tanggal_pengajuan' =>
-                        $request->date('tanggal_pengajuan'),
-
-                    'perihal' =>
-                        $request->string('perihal')->toString(),
-
-                    'keterangan' =>
-                        $request->string('keterangan')->toString(),
-
-                    'total_nominal' =>
-                        $request->input('total_nominal'),
-
-                    'id_status' =>
-                        $statusDiajukan->id_status,
-
-                    // Metode baru dipilih Bendahara.
-                    'metode_pembayaran' => null,
-
-                    'catatan_pengaju' => null,
-                ]);
-            }
-        );
-
-        return redirect()
-            ->route(
-                'pegawai.pengajuan.show',
-                $pengajuan
-            )
-            ->with(
-                'success',
-                'Pengajuan berhasil dibuat dan menunggu proses verifikasi.'
-            );
+        return redirect()->route('pegawai.pengajuan.index')->with('success', 'Pengajuan berhasil dibuat.');
     }
 
 
@@ -237,63 +211,35 @@ class PengajuanController extends Controller
     | Simpan Perbaikan / Revisi
     |--------------------------------------------------------------------------
     */
-    public function update(
-        UpdatePengajuanRequest $request,
-        Pengajuan $pengajuan
-    ): RedirectResponse {
-        $pengajuan->load('status');
+   public function update(UpdatePengajuanRequest $request, Pengajuan $pengajuan)
+    {
+        // 1. Cari riwayat verifikasi terakhir untuk pengajuan ini
+        $verifikasiTerakhir = $pengajuan->verifikasi()->latest('id_verifikasi')->first();
 
-        Gate::authorize('update', $pengajuan);
+        // 2. Tentukan kode status kembalian berdasarkan tahap terakhir
+        if ($verifikasiTerakhir) {
+            // Jika yang merevisi Verifikator 3, maka status kembali ke VERIFIKASI_3, dst.
+            $kodeStatusBaru = 'VERIFIKASI_' . $verifikasiTerakhir->tahap;
+        } else {
+            // Jika belum pernah diverifikasi sama sekali, kembali ke DIAJUKAN
+            $kodeStatusBaru = 'DIAJUKAN';
+        }
 
-        /*
-         * Setelah pegawai memperbaiki pengajuan,
-         * proses kembali ke Verifikator 1.
-         */
-        $statusVerifikasiSatu = StatusPengajuan::query()
-            ->where('kode_status', 'VERIFIKASI_1')
-            ->firstOrFail();
+        // 3. Ambil id_status dari tabel status pengajuan
+        $statusTarget = StatusPengajuan::where('kode_status', $kodeStatusBaru)->firstOrFail();
 
-        DB::transaction(
-            function () use (
-                $request,
-                $pengajuan,
-                $statusVerifikasiSatu
-            ) {
-                $pengajuan->update([
-                    'tanggal_pengajuan' =>
-                        $request->date('tanggal_pengajuan'),
+        // 4. Update data pengajuan
+        $pengajuan->update([
+            'perihal'           => \Illuminate\Support\Str::limit($request->keterangan, 100, '...'),
+            'keterangan'        => $request->keterangan,
+            'total_nominal'     => $request->total_nominal,
+            'bulan_kegiatan'    => $request->bulan_kegiatan,
+            'tim_pengaju'       => $request->tim_pengaju,
+            'nama_penerima'     => $request->nama_penerima,
+            'id_status'         => $statusTarget->id_status, // Status dinamis masuk ke sini
+        ]);
 
-                    'perihal' =>
-                        $request->string('perihal')->toString(),
-
-                    'keterangan' =>
-                        $request->string('keterangan')->toString(),
-
-                    'total_nominal' =>
-                        $request->input('total_nominal'),
-
-                    'catatan_pengaju' =>
-                        $request->filled('catatan_pengaju')
-                            ? $request
-                                ->string('catatan_pengaju')
-                                ->toString()
-                            : null,
-
-                    'id_status' =>
-                        $statusVerifikasiSatu->id_status,
-                ]);
-            }
-        );
-
-        return redirect()
-            ->route(
-                'pegawai.pengajuan.show',
-                $pengajuan
-            )
-            ->with(
-                'success',
-                'Perbaikan berhasil dikirim. Pengajuan kembali ke Verifikator 1.'
-            );
+        return redirect()->route('pegawai.pengajuan.index')->with('success', 'Pengajuan berhasil diperbaiki dan dikembalikan ke pemeriksa terakhir.');
     }
 
 

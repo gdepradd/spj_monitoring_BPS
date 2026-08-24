@@ -80,7 +80,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('users', UserController::class)->except('show');
     });
 Route::middleware(['auth', 'role:verifikator'])->prefix('verifikator')->name('verifikator.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::redirect('/dashboard', '/verifikator/pengajuan')->name('dashboard');
     Route::get('/pengajuan', [VerifikatorPengajuanController::class, 'index'])->name('pengajuan.index');
     Route::get('/pengajuan/{id}', [VerifikatorPengajuanController::class, 'show'])->name('pengajuan.show');
     Route::post('/pengajuan/{id}/keputusan', [VerifikatorPengajuanController::class, 'keputusan'])->name('pengajuan.keputusan');

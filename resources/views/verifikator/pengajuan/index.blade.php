@@ -9,36 +9,37 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="border-b py-2">No. Pengajuan</th>
-                            <th class="border-b py-2">Pengaju</th>
-                            <th class="border-b py-2">Nominal</th>
-                            <th class="border-b py-2">Status</th>
-                            <th class="border-b py-2">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($pengajuan as $item)
-                        <tr>
-                            <td class="py-2 border-b">{{ $item->no_pengajuan }}</td>
-                            <!-- Gunakan pemohon, bukan user -->
-                           <!-- Gunakan pemohon, bukan user -->
-                            <td class="py-2 border-b">{{ $item->pemohon->nama_lengkap ?? $item->pemohon->name ?? '-' }}</td>
-                            <td class="py-2 border-b">
-                                <x-status-badge :kode="$item->status->kode_status ?? 'UNKNOWN'" :label="$item->status->nama_status ?? 'Status Tidak Diketahui'" />
-                            </td>
-                            <td class="py-2 border-b">
-                                <a href="{{ route('verifikator.pengajuan.show', $item->id_pengajuan) }}" class="text-blue-600 hover:underline">Periksa</a>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="py-4 text-center text-gray-500">Tidak ada pengajuan baru.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+    <thead>
+        <tr>
+            <th class="border-b py-2">No. Pengajuan</th>
+            <th class="border-b py-2">Pengaju</th>
+            <th class="border-b py-2">Nominal</th>
+            <th class="border-b py-2">Status</th>
+            <th class="border-b py-2">Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse($pengajuan as $item)
+        <tr>
+            <td class="py-2 border-b">{{ $item->no_pengajuan }}</td>
+            <td class="py-2 border-b">{{ $item->pemohon->nama_lengkap ?? $item->pemohon->name ?? '-' }}</td>
+            <td class="py-2 border-b">Rp {{ number_format($item->total_nominal, 0, ',', '.') }}</td>
+            <td class="py-2 border-b">
+                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-bold">
+                    {{ $item->status->nama_status ?? '-' }}
+                </span>
+            </td>
+            <td class="py-2 border-b">
+                <a href="{{ route('verifikator.pengajuan.show', $item->id_pengajuan) }}" class="text-blue-600 hover:underline">Periksa</a>
+            </td>
+        </tr>
+        @empty
+        <tr>
+            <td colspan="5" class="py-4 text-center text-gray-500">Tidak ada pengajuan baru.</td>
+        </tr>
+        @endforelse
+    </tbody>
+</table>
             </div>
         </div>
     </div>

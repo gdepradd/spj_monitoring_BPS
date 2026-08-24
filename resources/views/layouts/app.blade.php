@@ -38,7 +38,6 @@
             @elseif($role === 'admin')
                 <a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Manajemen User</a>
             @elseif(in_array($role, ['verifikator', 'verifikator_1', 'verifikator_2', 'verifikator_3']))
-                <a href="{{ route('verifikator.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Dashboard</a>
                 <a href="{{ route('verifikator.pengajuan.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Daftar Pengajuan</a>
                 <a href="{{ route('verifikator.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat</a>
             @elseif($role === 'bendahara')
