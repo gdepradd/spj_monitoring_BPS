@@ -33,7 +33,8 @@
                     <h3 class="font-bold text-lg mb-4 border-b pb-2">Keputusan & Metode Pembayaran</h3>
                     <form action="{{ route('bendahara.pengajuan.ajukan', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                         @csrf
-                        <div class="space-y-4">
+                        <!-- Inisialisasi state Alpine.js di sini agar sinkron -->
+                        <div class="space-y-4" x-data="{ keputusan: '', metode: '' }">
                             
                             <!-- Pilih Keputusan -->
                             <div>
@@ -55,7 +56,7 @@
                             </div>
 
                             <!-- Pilih Metode (Hanya tampil jika ACC) -->
-                            <div x-show="keputusan == '1'" class="bg-blue-50 p-4 rounded border border-blue-100 mt-4">
+                            <div x-show="keputusan == '1'" class="bg-blue-50 p-4 rounded border border-blue-100 mt-4" style="display: none;">
                                 <label class="block font-medium text-sm text-blue-900 mb-2">Metode Pembayaran (Pilih Salah Satu):</label>
                                 <label class="flex items-center space-x-2">
                                     <input type="radio" name="metode_pembayaran" value="LS_BENDAHARA" x-model="metode" :required="keputusan == '1'" class="text-blue-600">
@@ -71,18 +72,35 @@
                                 </label>
                             </div>
 
+                            <!-- FORM INPUT SPP (MUNCUL JIKA METODE LS DIPILIH) -->
+                            <template x-if="keputusan == '1' && (metode == 'LS_BENDAHARA' || metode == 'LS_PIHAK_KETIGA')">
+                                <div class="bg-yellow-50 p-4 rounded border border-yellow-200 mt-4 shadow-sm">
+                                    <h4 class="font-bold text-sm text-gray-800 mb-3 border-b border-yellow-300 pb-1">Informasi Penerbitan SPP</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">No. SPP</label>
+                                            <input type="text" name="no_spp" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Tanggal SPP</label>
+                                            <input type="date" name="tgl_spp" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
                             <div class="mt-4">
-                                <label class="block font-medium text-sm text-gray-700">Catatan <span x-show="keputusan == '2' || keputusan == '3'" class="text-red-500">*wajib</span></label>
+                                <label class="block font-medium text-sm text-gray-700">Catatan <span x-show="keputusan == '2' || keputusan == '3'" class="text-red-500" style="display:none;">*wajib</span></label>
                                 <textarea name="catatan" rows="3" class="w-full border-gray-300 rounded-md shadow-sm mt-1" :required="keputusan == '2' || keputusan == '3'"></textarea>
                             </div>
 
                             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4 transition">
-    <span x-show="keputusan == '' || keputusan == '1'">
-        <span x-show="metode !== 'UP_TUP'">Ajukan Proses</span>
-        <span x-show="metode === 'UP_TUP'" style="display: none;">Konfirmasi Bayar & Selesai</span>
-    </span>
-    <span x-show="keputusan == '2' || keputusan == '3'" style="display: none;">Simpan Keputusan</span>
-</button>
+                                <span x-show="keputusan == '' || keputusan == '1'">
+                                    <span x-show="metode !== 'UP_TUP'">Ajukan Proses</span>
+                                    <span x-show="metode === 'UP_TUP'" style="display: none;">Konfirmasi Bayar & Selesai</span>
+                                </span>
+                                <span x-show="keputusan == '2' || keputusan == '3'" style="display: none;">Simpan Keputusan</span>
+                            </button>
                         </div>
                     </form>
 
@@ -95,22 +113,49 @@
                         @csrf
                         <div class="space-y-4">
                             <!-- Field untuk LS Pihak Ketiga -->
-                            @if($pengajuan->metode_pembayaran === 'LS_BENDAHARA')
-    @php 
-        $dataPpspm = $pengajuan->ppspm->sortByDesc('id_ppspm')->first(); 
-    @endphp
-    @if($dataPpspm)
-        <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-            <h4 class="font-bold mb-2">Informasi Dokumen Pencairan (PPSPM)</h4>
-            <div class="grid grid-cols-2 gap-2">
-                <p><strong>No. SPM:</strong> {{ $dataPpspm->no_spm ?? '-' }}</p>
-                <p><strong>Tanggal SPM:</strong> {{ $dataPpspm->tgl_spm ? \Carbon\Carbon::parse($dataPpspm->tgl_spm)->format('d/m/Y') : '-' }}</p>
-                <p><strong>No. SP2D:</strong> {{ $dataPpspm->no_sp2d ?? '-' }}</p>
-                <p><strong>Tanggal SP2D:</strong> {{ $dataPpspm->tgl_sp2d ? \Carbon\Carbon::parse($dataPpspm->tgl_sp2d)->format('d/m/Y') : '-' }}</p>
-            </div>
-        </div>
-    @endif
-@endif
+                         <!-- Field untuk LS Pihak Ketiga & Bendahara -->
+                            @if(in_array($pengajuan->metode_pembayaran, ['LS_BENDAHARA', 'LS_PIHAK_KETIGA']))
+                                @php 
+                                    $dataPpspm = $pengajuan->ppspm->sortByDesc('id_ppspm')->first(); 
+                                    $dataSpp = $pengajuan->bendahara->where('tahap', 'PENGAJUAN_SPP')->first();
+                                @endphp
+                                
+                                <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 shadow-sm">
+                                    <h4 class="font-bold mb-3 border-b border-blue-200 pb-2">Informasi Dokumen Pencairan</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        
+                                        <!-- Data SPP -->
+                                        <div>
+                                            <p class="text-xs font-semibold text-blue-700 uppercase">No. SPP (Bendahara)</p>
+                                            <p class="font-medium text-base">{{ $dataSpp->no_spp ?? '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-semibold text-blue-700 uppercase">Tanggal SPP</p>
+                                            <p class="font-medium text-base">{{ $dataSpp->tgl_spp ? \Carbon\Carbon::parse($dataSpp->tgl_spp)->format('d/m/Y') : '-' }}</p>
+                                        </div>
+                                        
+                                        <!-- Data SPM & SP2D -->
+                                        @if($dataPpspm)
+                                            <div>
+                                                <p class="text-xs font-semibold text-blue-700 uppercase">No. SPM (PPSPM)</p>
+                                                <p class="font-medium text-base">{{ $dataPpspm->no_spm ?? '-' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-semibold text-blue-700 uppercase">Tanggal SPM</p>
+                                                <p class="font-medium text-base">{{ $dataPpspm->tgl_spm ? \Carbon\Carbon::parse($dataPpspm->tgl_spm)->format('d/m/Y') : '-' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-semibold text-blue-700 uppercase">No. SP2D</p>
+                                                <p class="font-medium text-base">{{ $dataPpspm->no_sp2d ?? '-' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-semibold text-blue-700 uppercase">Tanggal SP2D</p>
+                                                <p class="font-medium text-base">{{ $dataPpspm->tgl_sp2d ? \Carbon\Carbon::parse($dataPpspm->tgl_sp2d)->format('d/m/Y') : '-' }}</p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
 
                             <!-- Selalu muncul -->
                             <div>

@@ -107,6 +107,10 @@ class PencairanService
                 'id_status' => 1,
                 'tgl_ajukan_kemenkeu' => $data['tgl_ajukan_kemenkeu'] ?? null,
                 'catatan' => $data['catatan'] ?? null,
+                'no_spm' => $data['no_spm'] ?? null,
+            'tgl_spm' => $data['tgl_spm'] ?? null,
+            'no_sp2d' => $data['no_sp2d'] ?? null,
+            'tgl_sp2d' => $data['tgl_sp2d'] ?? null,
             ]);
 
             $statusKonfirmasi = StatusPengajuan::where('kode_status', 'PROSES_KONFIRMASI_BENDAHARA')->firstOrFail();

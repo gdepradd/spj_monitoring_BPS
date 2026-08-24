@@ -25,7 +25,7 @@
                 </div>
             </div>
 
-            <!-- Area Form Terbitkan SPM -->
+            <!-- Area Form Terbitkan SPM
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
                     <h3 class="text-lg font-bold text-gray-900">
@@ -34,32 +34,44 @@
                     <p class="mt-1 text-sm text-gray-500">
                         Terbitkan Surat Perintah Membayar untuk diteruskan ke PPSPM.
                     </p>
-                </div>
+                </div> -->
 
                 <div class="p-6">
                     @if($pengajuan->status->kode_status === 'PROSES_PPK')
+                        
+                        <!-- 1. MENAMPILKAN DATA SPP DARI BENDAHARA -->
+                        @php
+                            $spp = $pengajuan->bendahara->where('tahap', 'PENGAJUAN_SPP')->first();
+                        @endphp
+
+                        @if($spp)
+                        <div class="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-800">
+                            <h4 class="font-bold mb-2 border-b border-purple-300 pb-2">Informasi Dokumen SPP</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                <div>
+                                    <p class="text-xs text-purple-600 uppercase font-semibold">Nomor SPP</p>
+                                    <p class="font-medium text-base">{{ $spp->no_spp ?? '-' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-purple-600 uppercase font-semibold">Tanggal SPP</p>
+                                    <p class="font-medium text-base">{{ $spp->tgl_spp ? \Carbon\Carbon::parse($spp->tgl_spp)->format('d M Y') : '-' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- 2. FORM HANYA TINGGAL CATATAN DAN TOMBOL ACC -->
                         <form action="{{ route('ppk.pengajuan.terbitkan-spm', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                             @csrf
                             <div class="space-y-5">
-                                <!-- Jika Dev 1 sudah migrate kolom no_spm dan tgl_spm, hilangkan komentar blok ini -->
                                 
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700">No. SPM</label>
-                                    <input type="text" name="no_spm" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700">Tanggal SPM</label>
-                                    <input type="date" name="tgl_spm" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm">
-                                </div>
-                               
-
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700">Catatan (Opsional)</label>
                                     <textarea name="catatan" rows="3" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"></textarea>
                                 </div>
 
                                 <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition">
-                                    Terbitkan SPM & Teruskan ke PPSPM
+                                    Setujui SPP & Teruskan ke PPSPM
                                 </button>
                             </div>
                         </form>

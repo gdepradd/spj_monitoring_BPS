@@ -34,10 +34,12 @@ class PpspmController extends Controller
     }
 
     public function show($id)
-    {
-        $pengajuan = Pengajuan::with('user')->findOrFail($id);
-        return view('ppspm.pengajuan.show', compact('pengajuan'));
-    }
+{
+    // Tambahkan 'ppspm' di dalam array with()
+    $pengajuan = Pengajuan::with(['bendahara', 'ppk', 'ppspm'])->findOrFail($id);
+
+    return view('ppspm.pengajuan.show', compact('pengajuan'));
+}
 
     public function ajukanKemenkeu(Request $request, $id)
     {

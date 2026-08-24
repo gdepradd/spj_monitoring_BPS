@@ -17,8 +17,8 @@ class Ppk extends Model
         'id_user',
         'tanggal_proses',
         'id_status',
-        'no_spm',
-        'tgl_spm',
+        // 'no_spm',
+        // 'tgl_spm',
         'catatan',
     ];
 
