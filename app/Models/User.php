@@ -56,4 +56,12 @@ class User extends Authenticatable
     {
         return in_array($this->role?->nama_role, $roles, true);
     }
+
+    /**
+     * Alias isRole(); dipakai oleh view layouts/navigation.blade.php.
+     */
+    public function hasRole(string ...$roles): bool
+    {
+        return $this->isRole(...$roles);
+    }
 }

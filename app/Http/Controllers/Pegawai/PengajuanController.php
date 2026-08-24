@@ -236,6 +236,7 @@ class PengajuanController extends Controller
             'bulan_kegiatan'    => $request->bulan_kegiatan,
             'tim_pengaju'       => $request->tim_pengaju,
             'nama_penerima'     => $request->nama_penerima,
+            'catatan_pengaju'   => $request->catatan_pengaju,
             'id_status'         => $statusTarget->id_status, // Status dinamis masuk ke sini
         ]);
 

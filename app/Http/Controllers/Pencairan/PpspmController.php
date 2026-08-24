@@ -29,28 +29,66 @@ class PpspmController extends Controller
     public function index()
     {
         $idPpspm = StatusPengajuan::where('kode_status', 'PROSES_PPSPM')->value('id_status');
-        $pengajuan = Pengajuan::with('user')->where('id_status', $idPpspm)->get();
+        $pengajuan = Pengajuan::with(['user', 'status'])->where('id_status', $idPpspm)->get();
         return view('ppspm.pengajuan.index', compact('pengajuan'));
     }
 
     public function show($id)
 {
-    // Tambahkan 'ppspm' di dalam array with()
-    $pengajuan = Pengajuan::with(['bendahara', 'ppk', 'ppspm'])->findOrFail($id);
+    $pengajuan = Pengajuan::with([
+        'user',
+        'status',
+        'verifikasi' => function ($query) {
+            $query->orderBy('tahap');
+        },
+        'verifikasi.verifikator',
+        'verifikasi.statusVerifikasi',
+        'bendahara.user',
+        'ppk.user',
+        'ppspm.user',
+    ])->findOrFail($id);
 
     return view('ppspm.pengajuan.show', compact('pengajuan'));
 }
 
     public function ajukanKemenkeu(Request $request, $id)
     {
-        $pengajuan = Pengajuan::findOrFail($id);
-        $this->pencairanService->ppspmAjukanKemenkeu($pengajuan, $request->all());
+        $pengajuan = Pengajuan::with('status')->findOrFail($id);
+
+        // Hanya boleh diproses saat pengajuan benar-benar berada di tahap PPSPM.
+        if ($pengajuan->status?->kode_status !== 'PROSES_PPSPM') {
+            return redirect()
+                ->route('ppspm.pengajuan.index')
+                ->with('error', 'Pengajuan ini tidak berada pada tahap PPSPM.');
+        }
+
+        // Nomor SPM & SP2D di sini menjadi rujukan Bendahara saat konfirmasi pencairan.
+        $data = $request->validate([
+            'tgl_ajukan_kemenkeu' => 'required|date',
+            'no_spm' => 'required|string|max:100',
+            'tgl_spm' => 'required|date',
+            'no_sp2d' => 'required|string|max:100',
+            'tgl_sp2d' => 'required|date',
+            'catatan' => 'nullable|string|max:5000',
+        ], [
+            'tgl_ajukan_kemenkeu.required' => 'Tanggal pengajuan ke Kemenkeu wajib diisi.',
+            'no_spm.required' => 'Nomor SPM wajib diisi.',
+            'tgl_spm.required' => 'Tanggal SPM wajib diisi.',
+            'no_sp2d.required' => 'Nomor SP2D wajib diisi.',
+            'tgl_sp2d.required' => 'Tanggal SP2D wajib diisi.',
+        ]);
+
+        $this->pencairanService->ppspmAjukanKemenkeu($pengajuan, $data);
+
         return redirect()->route('ppspm.pengajuan.index')->with('success', 'Diajukan ke Kemenkeu.');
     }
 
     public function riwayat()
     {
-        $riwayat = Ppspm::where('id_user', auth()->id())->with('pengajuan.user')->latest()->paginate(15);
+        $riwayat = Ppspm::where('id_user', auth()->id())
+            ->with(['pengajuan.user', 'pengajuan.status'])
+            ->orderByDesc('id_ppspm')
+            ->paginate(15);
         return view('ppspm.riwayat', compact('riwayat'));
     }
 }

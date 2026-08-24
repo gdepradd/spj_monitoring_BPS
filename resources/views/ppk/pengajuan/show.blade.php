@@ -41,24 +41,44 @@
                         
                         <!-- 1. MENAMPILKAN DATA SPP DARI BENDAHARA -->
                         @php
-                            $spp = $pengajuan->bendahara->where('tahap', 'PENGAJUAN_SPP')->first();
+                            $spp = $pengajuan->bendahara
+                                ->where('tahap', 'PENGAJUAN_SPP')
+                                ->sortByDesc('id_bendahara')
+                                ->first();
                         @endphp
 
-                        @if($spp)
                         <div class="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-800">
                             <h4 class="font-bold mb-2 border-b border-purple-300 pb-2">Informasi Dokumen SPP</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                                <div>
-                                    <p class="text-xs text-purple-600 uppercase font-semibold">Nomor SPP</p>
-                                    <p class="font-medium text-base">{{ $spp->no_spp ?? '-' }}</p>
+
+                            @if($spp)
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                    <div>
+                                        <p class="text-xs text-purple-600 uppercase font-semibold">Nomor SPP</p>
+                                        <p class="font-medium text-base">{{ $spp->no_spp ?? '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-purple-600 uppercase font-semibold">Tanggal SPP</p>
+                                        <p class="font-medium text-base">{{ $spp->tgl_spp ? \Carbon\Carbon::parse($spp->tgl_spp)->format('d M Y') : '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-purple-600 uppercase font-semibold">Diajukan Oleh</p>
+                                        <p class="font-medium text-base">{{ $spp->user->nama_lengkap ?? $spp->user->name ?? 'Bendahara' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-purple-600 uppercase font-semibold">Tanggal Proses</p>
+                                        <p class="font-medium text-base">{{ $spp->tanggal_proses ? \Carbon\Carbon::parse($spp->tanggal_proses)->format('d M Y H:i') : '-' }}</p>
+                                    </div>
+                                    @if($spp->catatan)
+                                        <div class="md:col-span-2">
+                                            <p class="text-xs text-purple-600 uppercase font-semibold">Catatan Bendahara</p>
+                                            <p class="font-medium text-base">{{ $spp->catatan }}</p>
+                                        </div>
+                                    @endif
                                 </div>
-                                <div>
-                                    <p class="text-xs text-purple-600 uppercase font-semibold">Tanggal SPP</p>
-                                    <p class="font-medium text-base">{{ $spp->tgl_spp ? \Carbon\Carbon::parse($spp->tgl_spp)->format('d M Y') : '-' }}</p>
-                                </div>
-                            </div>
+                            @else
+                                <p class="mt-2 text-purple-700">Bendahara belum mencatat dokumen SPP untuk pengajuan ini.</p>
+                            @endif
                         </div>
-                        @endif
 
                         <!-- 2. FORM HANYA TINGGAL CATATAN DAN TOMBOL ACC -->
                         <form action="{{ route('ppk.pengajuan.terbitkan-spm', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
@@ -82,7 +102,12 @@
             </div>
             <!-- Area Linimasa (Timeline) -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 md:col-span-2">
-                <h3 class="font-bold text-lg mb-4 border-b pb-2">Linimasa Pengajuan</h3>
+                <div class="mb-4 flex items-center justify-between border-b pb-2">
+                    <h3 class="font-bold text-lg">Linimasa Pengajuan</h3>
+                    <a href="{{ route('riwayat.detail', $pengajuan->id_pengajuan) }}" class="rounded-lg border border-purple-300 px-3 py-1 text-sm font-semibold text-purple-700 hover:bg-purple-50">
+                        Lihat Detail Lengkap
+                    </a>
+                </div>
                 <ol class="relative border-l border-gray-200 ml-3">
                     @foreach($pengajuan->riwayat_lengkap as $riwayat)
                     <li class="mb-8 ml-6">

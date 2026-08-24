@@ -17,7 +17,8 @@ class Pengajuan extends Model
         'no_pengajuan',
         'id_user',
         'tanggal_pengajuan',
-        // 'perihal',
+        // Diturunkan otomatis dari keterangan oleh Pegawai\PengajuanController.
+        'perihal',
         'keterangan',
         'total_nominal',
         'id_status',
@@ -73,7 +74,46 @@ class Pengajuan extends Model
         return $this->status?->kode_status === $kodeStatus;
     }
 
-   public function getRiwayatLengkapAttribute()
+    /**
+     * Label metode pembayaran yang dipakai bersama oleh seluruh role.
+     */
+    public function getMetodeLabelAttribute(): string
+    {
+        return match ($this->metode_pembayaran) {
+            'LS_BENDAHARA' => 'LS Bendahara',
+            'LS_PIHAK_KETIGA' => 'LS Pihak Ketiga',
+            'UP_TUP' => 'UP / TUP',
+            default => 'Belum Ditentukan',
+        };
+    }
+
+    /**
+     * Terjemahkan id_status pada tabel bendahara/ppk/ppspm.
+     * Konvensi yang dipakai service: 1 = ACC, 2 = REVISI, 3 = TOLAK.
+     */
+    protected function labelStatusPencairan($idStatus): string
+    {
+        return match ((int) $idStatus) {
+            1 => 'Selesai',
+            2 => 'Revisi',
+            3 => 'Ditolak',
+            default => 'Selesai',
+        };
+    }
+
+    protected function namaAktor($model, string $default): string
+    {
+        return $model?->user->nama_lengkap
+            ?? $model?->user->name
+            ?? $default;
+    }
+
+    /**
+     * Timeline lengkap pengajuan: pengajuan -> verifikasi -> pencairan.
+     * Setiap entri membawa dokumen yang diterbitkan pada tahap tersebut
+     * sehingga bisa ditampilkan seragam di semua role.
+     */
+    public function getRiwayatLengkapAttribute()
     {
         $timeline = collect();
 
@@ -83,15 +123,19 @@ class Pengajuan extends Model
             'aktor'   => $this->user->nama_lengkap ?? $this->user->name ?? 'Pegawai',
             'waktu'   => $this->created_at,
             'catatan' => $this->catatan_pengaju,
-            'status'  => 'Selesai'
+            'status'  => 'Selesai',
+            'dokumen' => array_filter([
+                'No. Pengajuan'  => $this->no_pengajuan,
+                'Tim Pengaju'    => $this->tim_pengaju,
+                'Bulan Kegiatan' => $this->bulan_kegiatan,
+                'Nama Penerima'  => $this->nama_penerima,
+                'Total Nominal'  => 'Rp ' . number_format((float) $this->total_nominal, 0, ',', '.'),
+            ]),
         ]);
 
         // 2. Proses Verifikasi (Tahap 1, 2, 3)
-        foreach ($this->verifikasi as $v) {
-            // Evaluasi status verifikasi berdasarkan relasi atau ID secara dinamis
-            $namaStatus = $v->statusVerifikasi->nama_status 
-                ?? $v->status->nama_status 
-                ?? null;
+        foreach ($this->verifikasi->sortBy('tahap') as $v) {
+            $namaStatus = $v->statusVerifikasi->nama_status ?? null;
 
             if ($namaStatus) {
                 $statusLower = strtolower($namaStatus);
@@ -99,25 +143,29 @@ class Pengajuan extends Model
                     $statusLabel = 'Selesai';
                 } elseif (str_contains($statusLower, 'revisi')) {
                     $statusLabel = 'Revisi';
-                } else {
+                } elseif (str_contains($statusLower, 'tolak')) {
                     $statusLabel = 'Ditolak';
+                } else {
+                    $statusLabel = 'Sedang Diproses';
                 }
             } else {
-                // Fallback jika relasi belum termuat
-                $statusId = $v->id_status_verifikasi ?? $v->id_status ?? 1;
-                $statusLabel = match ((int) $statusId) {
-                    1       => 'Selesai',
-                    2       => 'Revisi',
-                    default => 'Ditolak',
+                $statusLabel = match ((int) ($v->id_status_verifikasi ?? 0)) {
+                    2       => 'Selesai',
+                    3       => 'Revisi',
+                    4       => 'Ditolak',
+                    default => 'Sedang Diproses',
                 };
             }
 
             $timeline->push([
                 'judul'   => 'Verifikasi Tahap ' . $v->tahap,
-                'aktor'   => $v->verifikator->nama_lengkap ?? $v->verifikator->name ?? $v->user->nama_lengkap ?? $v->user->name ?? ('Verifikator ' . $v->tahap),
+                'aktor'   => $v->verifikator->nama_lengkap ?? $v->verifikator->name ?? ('Verifikator ' . $v->tahap),
                 'waktu'   => $v->tanggal_verifikasi ?? $v->created_at,
                 'catatan' => $v->catatan,
-                'status'  => $statusLabel
+                'status'  => $statusLabel,
+                'dokumen' => array_filter([
+                    'Hasil Verifikasi' => $v->statusVerifikasi->nama_status ?? null,
+                ]),
             ]);
         }
 
@@ -136,77 +184,110 @@ class Pengajuan extends Model
                 'aktor'   => 'Bendahara',
                 'waktu'   => null,
                 'catatan' => 'Menunggu Bendahara memilih metode pembayaran.',
-                'status'  => 'Sedang Diproses'
+                'status'  => 'Sedang Diproses',
+                'dokumen' => [],
             ]);
             return $timeline;
         }
 
-        // Cek apakah bendahara menolak/meminta revisi
-        $logRevisiTolakBendahara = $bendaharaLogs->first(function ($item) {
-            $kode = strtolower($item->statusPencairan->nama_status ?? $item->status->nama_status ?? '');
-            return str_contains($kode, 'revisi') || str_contains($kode, 'tolak') || in_array($item->id_status, [2, 3]);
-        });
+        // Cek apakah bendahara menolak/meminta revisi (id_status 2 = REVISI, 3 = TOLAK)
+        $logRevisiTolakBendahara = $bendaharaLogs->first(
+            fn ($item) => in_array((int) $item->id_status, [2, 3], true)
+        );
 
         if ($logRevisiTolakBendahara) {
-            $statusStr = strtolower($logRevisiTolakBendahara->statusPencairan->nama_status ?? '');
             $timeline->push([
                 'judul'   => 'Keputusan Bendahara',
-                'aktor'   => $logRevisiTolakBendahara->user->nama_lengkap ?? $logRevisiTolakBendahara->user->name ?? 'Bendahara',
+                'aktor'   => $this->namaAktor($logRevisiTolakBendahara, 'Bendahara'),
                 'waktu'   => $logRevisiTolakBendahara->tanggal_proses ?? $logRevisiTolakBendahara->created_at,
                 'catatan' => $logRevisiTolakBendahara->catatan,
-                'status'  => str_contains($statusStr, 'revisi') ? 'Revisi' : 'Ditolak'
+                'status'  => $this->labelStatusPencairan($logRevisiTolakBendahara->id_status),
+                'dokumen' => [],
             ]);
             return $timeline;
         }
 
         // Jalur UP / TUP
         if ($this->metode_pembayaran === 'UP_TUP') {
-            $logBayar = $bendaharaLogs->where('tahap', 'PEMBAYARAN_LANGSUNG')->first();
+            $logBayar = $bendaharaLogs->where('tahap', 'PEMBAYARAN_LANGSUNG')->sortByDesc('id_bendahara')->first();
             $timeline->push([
                 'judul'   => 'Pembayaran Langsung (UP/TUP)',
-                'aktor'   => 'Bendahara',
+                'aktor'   => $this->namaAktor($logBayar, 'Bendahara'),
                 'waktu'   => $logBayar ? ($logBayar->tgl_transfer ?? $logBayar->tanggal_proses ?? $logBayar->created_at) : null,
                 'catatan' => $logBayar?->catatan,
-                'status'  => $logBayar ? 'Selesai' : 'Sedang Diproses'
+                'status'  => $logBayar ? 'Selesai' : 'Sedang Diproses',
+                'dokumen' => array_filter([
+                    'Metode'         => $this->metode_label,
+                    'Tgl. Transfer'  => $logBayar?->tgl_transfer,
+                    'Nama Bank'      => $logBayar?->nama_bank,
+                    'No. Rekening'   => $logBayar?->no_rekening,
+                    'Atas Nama'      => $logBayar?->atas_nama_rekening,
+                ]),
             ]);
             return $timeline;
         }
 
         // Jalur Normal (LS Bendahara / LS Pihak Ketiga)
-        $logSpp = $bendaharaLogs->where('tahap', 'PENGAJUAN_SPP')->first();
+        $logSpp = $bendaharaLogs->where('tahap', 'PENGAJUAN_SPP')->sortByDesc('id_bendahara')->first();
         $timeline->push([
             'judul'   => 'Pengajuan SPP',
-            'aktor'   => 'Bendahara',
+            'aktor'   => $this->namaAktor($logSpp, 'Bendahara'),
             'waktu'   => $logSpp ? ($logSpp->tgl_spp ?? $logSpp->tanggal_proses ?? $logSpp->created_at) : null,
             'catatan' => $logSpp?->catatan,
-            'status'  => $logSpp ? 'Selesai' : 'Sedang Diproses'
+            'status'  => $logSpp ? 'Selesai' : 'Sedang Diproses',
+            'dokumen' => array_filter([
+                'Metode'     => $this->metode_label,
+                'No. SPP'    => $logSpp?->no_spp,
+                'Tgl. SPP'   => $logSpp?->tgl_spp,
+            ]),
         ]);
 
-        $logPpk = $this->ppk->first();
+        $logPpk = $this->ppk->sortByDesc('id_ppk')->first();
         $timeline->push([
-            'judul'   => 'Penerbitan SPM',
-            'aktor'   => 'PPK',
+            'judul'   => 'Persetujuan SPP oleh PPK',
+            'aktor'   => $this->namaAktor($logPpk, 'PPK'),
             'waktu'   => $logPpk ? ($logPpk->tgl_spm ?? $logPpk->tanggal_proses ?? $logPpk->created_at) : null,
             'catatan' => $logPpk?->catatan,
-            'status'  => $logPpk ? 'Selesai' : ($logSpp ? 'Sedang Diproses' : 'Belum Dimulai')
+            'status'  => $logPpk ? $this->labelStatusPencairan($logPpk->id_status) : ($logSpp ? 'Sedang Diproses' : 'Belum Dimulai'),
+            'dokumen' => array_filter([
+                'No. SPP Disetujui' => $logSpp?->no_spp,
+                'No. SPM'           => $logPpk?->no_spm,
+                'Tgl. SPM'          => $logPpk?->tgl_spm,
+            ]),
         ]);
 
-        $logPpspm = $this->ppspm->first();
+        $logPpspm = $this->ppspm->sortByDesc('id_ppspm')->first();
         $timeline->push([
-            'judul'   => 'Pengajuan ke Kemenkeu',
-            'aktor'   => 'PPSPM',
+            'judul'   => 'Pengajuan ke Kemenkeu (PPSPM)',
+            'aktor'   => $this->namaAktor($logPpspm, 'PPSPM'),
             'waktu'   => $logPpspm ? ($logPpspm->tgl_ajukan_kemenkeu ?? $logPpspm->tanggal_proses ?? $logPpspm->created_at) : null,
             'catatan' => $logPpspm?->catatan,
-            'status'  => $logPpspm ? 'Selesai' : ($logPpk ? 'Sedang Diproses' : 'Belum Dimulai')
+            'status'  => $logPpspm ? $this->labelStatusPencairan($logPpspm->id_status) : ($logPpk ? 'Sedang Diproses' : 'Belum Dimulai'),
+            'dokumen' => array_filter([
+                'Tgl. Ajukan Kemenkeu' => $logPpspm?->tgl_ajukan_kemenkeu,
+                'No. SPM'              => $logPpspm?->no_spm,
+                'Tgl. SPM'             => $logPpspm?->tgl_spm,
+                'No. SP2D'             => $logPpspm?->no_sp2d,
+                'Tgl. SP2D'            => $logPpspm?->tgl_sp2d,
+            ]),
         ]);
 
-        $logKonfirmasi = $bendaharaLogs->where('tahap', 'KONFIRMASI')->first();
+        $logKonfirmasi = $bendaharaLogs->where('tahap', 'KONFIRMASI')->sortByDesc('id_bendahara')->first();
         $timeline->push([
             'judul'   => 'Konfirmasi Pencairan',
-            'aktor'   => 'Bendahara',
+            'aktor'   => $this->namaAktor($logKonfirmasi, 'Bendahara'),
             'waktu'   => $logKonfirmasi ? ($logKonfirmasi->tgl_transfer ?? $logKonfirmasi->tanggal_proses ?? $logKonfirmasi->created_at) : null,
             'catatan' => $logKonfirmasi?->catatan,
-            'status'  => $logKonfirmasi ? 'Selesai' : ($logPpspm ? 'Sedang Diproses' : 'Belum Dimulai')
+            'status'  => $logKonfirmasi ? 'Selesai' : ($logPpspm ? 'Sedang Diproses' : 'Belum Dimulai'),
+            'dokumen' => array_filter([
+                'Tgl. Transfer' => $logKonfirmasi?->tgl_transfer,
+                'No. SPM'       => $logKonfirmasi?->no_spm ?? $logPpspm?->no_spm,
+                'No. SP2D'      => $logKonfirmasi?->no_sp2d ?? $logPpspm?->no_sp2d,
+                'Tgl. SP2D'     => $logKonfirmasi?->tgl_sp2d ?? $logPpspm?->tgl_sp2d,
+                'Nama Bank'     => $logKonfirmasi?->nama_bank,
+                'No. Rekening'  => $logKonfirmasi?->no_rekening,
+                'Atas Nama'     => $logKonfirmasi?->atas_nama_rekening,
+            ]),
         ]);
 
         return $timeline;

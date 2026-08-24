@@ -89,6 +89,32 @@
                                 </div>
                             </template>
 
+                            <!-- FORM PEMBAYARAN LANGSUNG (MUNCUL JIKA METODE UP/TUP DIPILIH) -->
+                            <template x-if="keputusan == '1' && metode == 'UP_TUP'">
+                                <div class="bg-green-50 p-4 rounded border border-green-200 mt-4 shadow-sm">
+                                    <h4 class="font-bold text-sm text-gray-800 mb-3 border-b border-green-300 pb-1">Bukti Pembayaran Langsung</h4>
+                                    <p class="mb-3 text-xs text-gray-600">Metode UP/TUP selesai di tahap ini, sehingga data transfer dicatat sekarang.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Tanggal Transfer</label>
+                                            <input type="date" name="tgl_transfer" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
+                                            <input type="text" name="nama_bank" placeholder="Contoh: BRI / BNI / Mandiri" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
+                                            <input type="text" name="no_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
+                                            <input type="text" name="atas_nama_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
                             <div class="mt-4">
                                 <label class="block font-medium text-sm text-gray-700">Catatan <span x-show="keputusan == '2' || keputusan == '3'" class="text-red-500" style="display:none;">*wajib</span></label>
                                 <textarea name="catatan" rows="3" class="w-full border-gray-300 rounded-md shadow-sm mt-1" :required="keputusan == '2' || keputusan == '3'"></textarea>
@@ -117,7 +143,11 @@
                             @if(in_array($pengajuan->metode_pembayaran, ['LS_BENDAHARA', 'LS_PIHAK_KETIGA']))
                                 @php 
                                     $dataPpspm = $pengajuan->ppspm->sortByDesc('id_ppspm')->first(); 
-                                    $dataSpp = $pengajuan->bendahara->where('tahap', 'PENGAJUAN_SPP')->first();
+                                    $dataSpp = $pengajuan->bendahara
+                                        ->where('tahap', 'PENGAJUAN_SPP')
+                                        ->sortByDesc('id_bendahara')
+                                        ->first();
+                                    $dataPpk = $pengajuan->ppk->sortByDesc('id_ppk')->first();
                                 @endphp
                                 
                                 <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 shadow-sm">
@@ -127,11 +157,21 @@
                                         <!-- Data SPP -->
                                         <div>
                                             <p class="text-xs font-semibold text-blue-700 uppercase">No. SPP (Bendahara)</p>
-                                            <p class="font-medium text-base">{{ $dataSpp->no_spp ?? '-' }}</p>
+                                            <p class="font-medium text-base">{{ $dataSpp?->no_spp ?? '-' }}</p>
                                         </div>
                                         <div>
                                             <p class="text-xs font-semibold text-blue-700 uppercase">Tanggal SPP</p>
-                                            <p class="font-medium text-base">{{ $dataSpp->tgl_spp ? \Carbon\Carbon::parse($dataSpp->tgl_spp)->format('d/m/Y') : '-' }}</p>
+                                            <p class="font-medium text-base">{{ $dataSpp?->tgl_spp ? \Carbon\Carbon::parse($dataSpp->tgl_spp)->format('d/m/Y') : '-' }}</p>
+                                        </div>
+
+                                        <!-- Data Persetujuan PPK -->
+                                        <div>
+                                            <p class="text-xs font-semibold text-blue-700 uppercase">Disetujui PPK</p>
+                                            <p class="font-medium text-base">{{ $dataPpk?->user->nama_lengkap ?? $dataPpk?->user->name ?? '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-semibold text-blue-700 uppercase">Tanggal Persetujuan PPK</p>
+                                            <p class="font-medium text-base">{{ $dataPpk?->tanggal_proses ? \Carbon\Carbon::parse($dataPpk->tanggal_proses)->format('d/m/Y H:i') : '-' }}</p>
                                         </div>
                                         
                                         <!-- Data SPM & SP2D -->
@@ -190,7 +230,12 @@
             </div>
             <!-- Area Linimasa (Timeline) -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 md:col-span-2">
-                <h3 class="font-bold text-lg mb-4 border-b pb-2">Linimasa Pengajuan</h3>
+                <div class="mb-4 flex items-center justify-between border-b pb-2">
+                    <h3 class="font-bold text-lg">Linimasa Pengajuan</h3>
+                    <a href="{{ route('riwayat.detail', $pengajuan->id_pengajuan) }}" class="rounded-lg border border-blue-300 px-3 py-1 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+                        Lihat Detail Lengkap
+                    </a>
+                </div>
                 <ol class="relative border-l border-gray-200 ml-3">
                     @foreach($pengajuan->riwayat_lengkap as $item)
     <div class="mb-4 flex items-start space-x-3">

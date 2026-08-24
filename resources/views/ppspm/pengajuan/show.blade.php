@@ -37,6 +37,36 @@
                 </div>
 
                 <div class="p-6">
+                    @php
+                        $spp = $pengajuan->bendahara
+                            ->where('tahap', 'PENGAJUAN_SPP')
+                            ->sortByDesc('id_bendahara')
+                            ->first();
+                        $dataPpk = $pengajuan->ppk->sortByDesc('id_ppk')->first();
+                    @endphp
+
+                    <div class="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
+                        <h4 class="font-bold mb-2 border-b border-indigo-300 pb-2">Informasi Dokumen SPP</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                            <div>
+                                <p class="text-xs text-indigo-600 uppercase font-semibold">Nomor SPP</p>
+                                <p class="font-medium text-base">{{ $spp?->no_spp ?? '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-indigo-600 uppercase font-semibold">Tanggal SPP</p>
+                                <p class="font-medium text-base">{{ $spp?->tgl_spp ? \Carbon\Carbon::parse($spp->tgl_spp)->format('d M Y') : '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-indigo-600 uppercase font-semibold">Disetujui PPK</p>
+                                <p class="font-medium text-base">{{ $dataPpk?->user->nama_lengkap ?? $dataPpk?->user->name ?? '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-indigo-600 uppercase font-semibold">Tanggal Persetujuan PPK</p>
+                                <p class="font-medium text-base">{{ $dataPpk?->tanggal_proses ? \Carbon\Carbon::parse($dataPpk->tanggal_proses)->format('d M Y H:i') : '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     @if($pengajuan->status->kode_status === 'PROSES_PPSPM')
                         <form action="{{ route('ppspm.pengajuan.ajukan-kemenkeu', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                             @csrf
@@ -83,7 +113,12 @@
             </div>
             <!-- Area Linimasa (Timeline) -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 md:col-span-2">
-                <h3 class="font-bold text-lg mb-4 border-b pb-2">Linimasa Pengajuan</h3>
+                <div class="mb-4 flex items-center justify-between border-b pb-2">
+                    <h3 class="font-bold text-lg">Linimasa Pengajuan</h3>
+                    <a href="{{ route('riwayat.detail', $pengajuan->id_pengajuan) }}" class="rounded-lg border border-indigo-300 px-3 py-1 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
+                        Lihat Detail Lengkap
+                    </a>
+                </div>
                 <ol class="relative border-l border-gray-200 ml-3">
                     @foreach($pengajuan->riwayat_lengkap as $riwayat)
                     <li class="mb-8 ml-6">

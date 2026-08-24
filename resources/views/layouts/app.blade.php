@@ -36,6 +36,12 @@
                 <a href="{{ route('pegawai.pengajuan.create') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Buat Pengajuan</a>
                 <a href="{{ route('pegawai.pengajuan.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat Pengajuan</a>
             @elseif($role === 'admin')
+                <p class="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ui-card/60">Monitoring</p>
+                <a href="{{ route('admin.monitoring.dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Dashboard Monitoring</a>
+                <a href="{{ route('admin.monitoring.pengajuan') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Semua Pengajuan</a>
+                <a href="{{ route('admin.monitoring.aktivitas') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Log Aktivitas</a>
+
+                <p class="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-ui-card/60">Administrasi</p>
                 <a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Manajemen User</a>
             @elseif(in_array($role, ['verifikator', 'verifikator_1', 'verifikator_2', 'verifikator_3']))
                 <a href="{{ route('verifikator.pengajuan.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Daftar Pengajuan</a>
@@ -60,7 +66,7 @@
         <header class="flex items-center justify-between border-b border-ui-border bg-ui-card px-4 py-4 md:px-8">
             <div>
                 <h1 class="text-lg font-semibold">{{ $title }}</h1>
-                <p class="text-xs text-ui-muted">Role: {{ ucwords(str_replace('_', ' ', (string) $role)) }}</p>
+                <p class="text-xs text-ui-muted">Role: {{ $role === 'admin' ? 'Super Admin' : ucwords(str_replace('_', ' ', (string) $role)) }}</p>
             </div>
 
             @auth
@@ -83,6 +89,21 @@
             @if(session('error'))
                 <div class="mb-5 rounded-lg border border-status-rejected/20 bg-status-rejected/10 px-4 py-3 text-sm text-status-rejected">
                     {{ session('error') }}
+                </div>
+            @endif
+
+            {{-- Pesan validasi form; tanpa blok ini kegagalan validasi hanya
+                 memuat ulang halaman tanpa penjelasan apa pun.
+                 $errors hanya di-share oleh middleware group "web", karena itu
+                 keberadaannya diperiksa agar layout tetap aman dirender di luar request. --}}
+            @if(isset($errors) && $errors->any())
+                <div class="mb-5 rounded-lg border border-status-rejected/20 bg-status-rejected/10 px-4 py-3 text-sm text-status-rejected">
+                    <p class="font-semibold">Periksa kembali isian berikut:</p>
+                    <ul class="mt-2 list-inside list-disc space-y-1">
+                        @foreach($errors->all() as $pesan)
+                            <li>{{ $pesan }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             @endif
 

@@ -15,7 +15,11 @@ class UpdatePengajuanRequest extends FormRequest
     {
         return [
             'tanggal_pengajuan' => ['required', 'date'],
-            // 'perihal' => ['required', 'string', 'max:255'],
+            // Ikut divalidasi karena update() menulis ulang kolom-kolom ini;
+            // tanpa input yang sepadan, perbaikan pengajuan akan mengosongkannya.
+            'tim_pengaju' => ['required', 'string', 'max:255'],
+            'bulan_kegiatan' => ['required', 'date'],
+            'nama_penerima' => ['required', 'string', 'max:255'],
             'keterangan' => ['required', 'string', 'max:5000'],
             'total_nominal' => ['required', 'numeric', 'min:0', 'max:9999999999999.99'],
             'catatan_pengaju' => ['nullable', 'string', 'max:5000'],

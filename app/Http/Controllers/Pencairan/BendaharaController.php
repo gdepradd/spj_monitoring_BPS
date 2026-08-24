@@ -57,6 +57,9 @@ class BendaharaController extends Controller
             },
             'verifikasi.verifikator',
             'verifikasi.statusVerifikasi',
+            'bendahara.user',
+            'ppk.user',
+            'ppspm.user',
         ])->findOrFail($id);
 
         $idMenunggu = StatusPengajuan::where('kode_status', 'MENUNGGU_PENCAIRAN')->value('id_status');
@@ -71,13 +74,35 @@ class BendaharaController extends Controller
 
     public function ajukan(Request $request, $id)
     {
+        $pengajuan = Pengajuan::with('status')->findOrFail($id);
+
+        // Cegah pengajuan diproses ulang dari tahap yang sudah lewat.
+        if ($pengajuan->status?->kode_status !== 'MENUNGGU_PENCAIRAN') {
+            return redirect()
+                ->route('bendahara.pengajuan.index')
+                ->with('error', 'Pengajuan ini tidak berada pada tahap pemilihan metode pembayaran.');
+        }
+
         $request->validate([
             'id_status_pencairan' => 'required|in:1,2,3', // 1=ACC, 2=REVISI, 3=TOLAK
-            'metode_pembayaran' => 'required_if:id_status_pencairan,1',
+            'metode_pembayaran' => 'required_if:id_status_pencairan,1|nullable|in:LS_BENDAHARA,LS_PIHAK_KETIGA,UP_TUP',
+            // Dokumen SPP wajib pada metode LS agar bisa dibaca PPK, PPSPM, dan saat konfirmasi.
+            'no_spp' => 'required_if:metode_pembayaran,LS_BENDAHARA,LS_PIHAK_KETIGA',
+            'tgl_spp' => 'required_if:metode_pembayaran,LS_BENDAHARA,LS_PIHAK_KETIGA|nullable|date',
+            // UP/TUP selesai di tangan Bendahara, jadi bukti transfernya dicatat di sini.
+            'tgl_transfer' => 'required_if:metode_pembayaran,UP_TUP|nullable|date',
+            'nama_bank' => 'required_if:metode_pembayaran,UP_TUP|nullable|string|max:100',
+            'no_rekening' => 'required_if:metode_pembayaran,UP_TUP|nullable|string|max:50',
+            'atas_nama_rekening' => 'required_if:metode_pembayaran,UP_TUP|nullable|string|max:150',
             'catatan' => 'required_if:id_status_pencairan,2,3' // Wajib jika ditolak/revisi
+        ], [
+            'no_spp.required_if' => 'Nomor SPP wajib diisi untuk metode pembayaran LS.',
+            'tgl_spp.required_if' => 'Tanggal SPP wajib diisi untuk metode pembayaran LS.',
+            'tgl_transfer.required_if' => 'Tanggal transfer wajib diisi untuk metode UP/TUP.',
+            'nama_bank.required_if' => 'Nama bank wajib diisi untuk metode UP/TUP.',
+            'no_rekening.required_if' => 'Nomor rekening wajib diisi untuk metode UP/TUP.',
+            'atas_nama_rekening.required_if' => 'Atas nama rekening wajib diisi untuk metode UP/TUP.',
         ]);
-
-        $pengajuan = Pengajuan::findOrFail($id);
 
         // Jika REVISI (2) atau TOLAK (3)
         if ($request->id_status_pencairan != 1) {
@@ -99,20 +124,38 @@ class BendaharaController extends Controller
 
     public function konfirmasi(Request $request, $id)
     {
-        $pengajuan = Pengajuan::findOrFail($id);
-        
-        // Validasi wajib isi untuk tahap akhir LS_PIHAK_KETIGA
-        if ($pengajuan->metode_pembayaran === 'LS_PIHAK_KETIGA') {
-            $request->validate([
-                'no_spm' => 'required',
-                'tgl_transfer' => 'required|date',
-                'no_sp2d' => 'required',
-                'tgl_sp2d' => 'required|date',
-            ]);
-        } else {
-            // Untuk UP_TUP dan LS_BENDAHARA
-            $request->validate(['tgl_transfer' => 'required|date']);
+        $pengajuan = Pengajuan::with('status')->findOrFail($id);
+
+        // Konfirmasi hanya sah bila PPSPM sudah menyerahkan kembali ke Bendahara.
+        if ($pengajuan->status?->kode_status !== 'PROSES_KONFIRMASI_BENDAHARA') {
+            return redirect()
+                ->route('bendahara.pengajuan.index')
+                ->with('error', 'Pengajuan ini tidak berada pada tahap konfirmasi pencairan.');
         }
+
+        $rules = [
+            'tgl_transfer' => 'required|date',
+            'nama_bank' => 'required|string|max:100',
+            'no_rekening' => 'required|string|max:50',
+            'atas_nama_rekening' => 'required|string|max:150',
+            'catatan' => 'nullable|string',
+        ];
+
+        // Pada metode LS, nomor SPM/SP2D sudah diterbitkan PPSPM sehingga tidak diinput ulang.
+        if (in_array($pengajuan->metode_pembayaran, ['LS_BENDAHARA', 'LS_PIHAK_KETIGA'], true)) {
+            $ppspm = $pengajuan->ppspm()->orderByDesc('id_ppspm')->first();
+
+            if (! $ppspm || ! $ppspm->no_spm || ! $ppspm->no_sp2d) {
+                return back()->with('error', 'Dokumen SPM/SP2D dari PPSPM belum lengkap. Konfirmasi pencairan belum dapat dilakukan.');
+            }
+        }
+
+        $request->validate($rules, [
+            'tgl_transfer.required' => 'Tanggal transfer wajib diisi.',
+            'nama_bank.required' => 'Nama bank wajib diisi.',
+            'no_rekening.required' => 'Nomor rekening wajib diisi.',
+            'atas_nama_rekening.required' => 'Atas nama rekening wajib diisi.',
+        ]);
 
         $this->pencairanService->bendaharaKonfirmasi($pengajuan, $request->all());
 
@@ -122,8 +165,8 @@ class BendaharaController extends Controller
     public function riwayat()
     {
         $riwayat = Bendahara::where('id_user', auth()->id())
-                    ->with('pengajuan.user')
-                    ->latest()
+                    ->with(['pengajuan.user', 'pengajuan.status'])
+                    ->orderByDesc('id_bendahara')
                     ->paginate(15);
                     
         return view('bendahara.riwayat', compact('riwayat'));

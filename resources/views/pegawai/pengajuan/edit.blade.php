@@ -14,11 +14,23 @@
                 @error('tanggal_pengajuan')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
-            <!-- <div>
-                <x-input-label for="perihal" value="Perihal" />
-                <x-text-input id="perihal" name="perihal" value="{{ old('perihal', $pengajuan->perihal) }}" required />
-                @error('perihal')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
-            </div> -->
+            <div>
+                <x-input-label for="tim_pengaju" value="Tim yang mengajukan SPJ" />
+                <x-text-input id="tim_pengaju" name="tim_pengaju" value="{{ old('tim_pengaju', $pengajuan->tim_pengaju) }}" required />
+                @error('tim_pengaju')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <x-input-label for="bulan_kegiatan" value="Tanggal Kegiatan" />
+                <x-text-input id="bulan_kegiatan" name="bulan_kegiatan" type="date" value="{{ old('bulan_kegiatan', $pengajuan->bulan_kegiatan ? \Carbon\Carbon::parse($pengajuan->bulan_kegiatan)->toDateString() : '') }}" required />
+                @error('bulan_kegiatan')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <x-input-label for="nama_penerima" value="Nama Penerima" />
+                <x-text-input id="nama_penerima" name="nama_penerima" value="{{ old('nama_penerima', $pengajuan->nama_penerima) }}" required />
+                @error('nama_penerima')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+            </div>
 
             <div>
                 <x-input-label for="keterangan" value="Keterangan / Ringkasan Dokumen SPJ" />

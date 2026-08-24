@@ -5,7 +5,7 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
+                    <a href="{{ url('/') }}">
                         <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                     </a>
                 </div>
@@ -14,7 +14,7 @@
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     
                     <!-- Menu Verifikator -->
-                    @if(Auth::user()->hasRole('verifikator_1') || Auth::user()->hasRole('verifikator_2') || Auth::user()->hasRole('verifikator_3'))
+                    @if(Auth::user()->hasRole('verifikator'))
                         <x-nav-link :href="route('verifikator.dashboard')" :active="request()->routeIs('verifikator.dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
@@ -66,8 +66,8 @@
                     @endif
 
                     <!-- Menu Default / Pegawai (Jika tidak memiliki role di atas) -->
-                    @if(!Auth::user()->hasRole('verifikator_1') && !Auth::user()->hasRole('verifikator_2') && !Auth::user()->hasRole('verifikator_3') && !Auth::user()->hasRole('bendahara') && !Auth::user()->hasRole('ppk') && !Auth::user()->hasRole('ppspm'))
-                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    @if(!Auth::user()->hasRole('verifikator', 'bendahara', 'ppk', 'ppspm'))
+                         <x-nav-link :href="url('/')" :active="request()->is('/')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
                     @endif
@@ -80,7 +80,7 @@
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+                            <div>{{ Auth::user()->nama_lengkap ?? Auth::user()->name }}</div>
 
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -91,9 +91,12 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
+                        {{-- Route profile.* belum didaftarkan di routes/web.php. --}}
+                        @if(Route::has('profile.edit'))
+                            <x-dropdown-link :href="route('profile.edit')">
+                                {{ __('Profile') }}
+                            </x-dropdown-link>
+                        @endif
 
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -126,7 +129,7 @@
         <div class="pt-2 pb-3 space-y-1">
             
             <!-- Menu Verifikator Mobile -->
-            @if(Auth::user()->hasRole('verifikator_1') || Auth::user()->hasRole('verifikator_2') || Auth::user()->hasRole('verifikator_3'))
+            @if(Auth::user()->hasRole('verifikator'))
                 <x-responsive-nav-link :href="route('verifikator.dashboard')" :active="request()->routeIs('verifikator.dashboard')">
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
@@ -178,8 +181,8 @@
             @endif
 
             <!-- Menu Default Mobile -->
-            @if(!Auth::user()->hasRole('verifikator_1') && !Auth::user()->hasRole('verifikator_2') && !Auth::user()->hasRole('verifikator_3') && !Auth::user()->hasRole('bendahara') && !Auth::user()->hasRole('ppk') && !Auth::user()->hasRole('ppspm'))
-                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+            @if(!Auth::user()->hasRole('verifikator', 'bendahara', 'ppk', 'ppspm'))
+                <x-responsive-nav-link :href="url('/')" :active="request()->is('/')">
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
             @endif
@@ -189,14 +192,17 @@
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
+                <div class="font-medium text-base text-gray-800">{{ Auth::user()->nama_lengkap ?? Auth::user()->name }}</div>
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
             </div>
 
             <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
+                {{-- Route profile.* belum didaftarkan di routes/web.php. --}}
+                @if(Route::has('profile.edit'))
+                    <x-responsive-nav-link :href="route('profile.edit')">
+                        {{ __('Profile') }}
+                    </x-responsive-nav-link>
+                @endif
 
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">

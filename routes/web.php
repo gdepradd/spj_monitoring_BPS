@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\MonitoringController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Pegawai\DashboardController as PegawaiDashboardController;
 use App\Http\Controllers\Pegawai\PengajuanController;
@@ -9,6 +10,12 @@ use App\Http\Controllers\Verifikator\PengajuanController as VerifikatorPengajuan
 use App\Http\Controllers\Pencairan\PpkController;
 use App\Http\Controllers\Pencairan\BendaharaController;
 use App\Http\Controllers\Pencairan\PpspmController;
+use App\Http\Controllers\RiwayatController;
+
+// DETAIL RIWAYAT (dipakai semua role: verifikator s.d. pencairan)
+Route::middleware(['auth', 'role:pegawai,verifikator,ppk,bendahara,ppspm,admin'])
+    ->get('/riwayat/pengajuan/{id}', [RiwayatController::class, 'show'])
+    ->name('riwayat.detail');
 
 // PPK
 Route::middleware(['auth', 'role:ppk'])->prefix('ppk')->name('ppk.')->group(function () {
@@ -50,7 +57,7 @@ Route::get('/', function () {
         'ppk' => '/ppk/dashboard',
         'bendahara' => '/bendahara/dashboard',
         'ppspm' => '/ppspm/dashboard',
-        'admin' => '/admin/users',
+        'admin' => '/admin/monitoring',
         default => '/login',
     });
 });
@@ -73,10 +80,17 @@ Route::middleware(['auth', 'role:pegawai'])
         Route::put('/pengajuan/{pengajuan}', [PengajuanController::class, 'update'])->name('pengajuan.update');
     });
 
+// ADMIN (super admin): monitoring menyeluruh + manajemen user.
+// Seluruh rute monitoring hanya GET — admin memantau, tidak mengubah alur pengajuan.
 Route::middleware(['auth', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        Route::get('/monitoring', [MonitoringController::class, 'dashboard'])->name('monitoring.dashboard');
+        Route::get('/monitoring/aktivitas', [MonitoringController::class, 'aktivitas'])->name('monitoring.aktivitas');
+        Route::get('/monitoring/pengajuan', [MonitoringController::class, 'pengajuan'])->name('monitoring.pengajuan');
+        Route::get('/monitoring/pengajuan/{id}', [MonitoringController::class, 'show'])->name('monitoring.show');
+
         Route::resource('users', UserController::class)->except('show');
     });
 Route::middleware(['auth', 'role:verifikator'])->prefix('verifikator')->name('verifikator.')->group(function () {
