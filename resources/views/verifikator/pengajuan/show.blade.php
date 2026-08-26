@@ -232,19 +232,6 @@
                             </p>
                         </div>
 
-
-                        <div>
-                            <!-- <p
-                                class="text-xs font-semibold uppercase
-                                       tracking-wide text-ui-muted">
-                                Nomor HP
-                            </p> -->
-
-                            <!-- <p class="mt-1.5 text-sm text-gray-700">
-                                {{ $pengajuan->pemohon?->no_hp ?? '-' }}
-                            </p> -->
-                        </div>
-
                     </div>
 
                 </div>

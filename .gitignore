@@ -17,3 +17,12 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Berkas lingkungan: berisi APP_KEY dan kredensial database, selalu per-mesin.
+.env.testing
+
+# Dump database SIMABAR. Dikecualikan bukan hanya karena isinya, tapi karena
+# memang bukan milik proyek ini: 2,8 MB, 23 tabel yang tidak dipakai aplikasi
+# SPJ, dan sekali masuk akan ikut selamanya di riwayat git. Hasil ekstraksinya
+# sudah tersimpan rapi di database/seeders/data/pegawai.json.
+/data.sql

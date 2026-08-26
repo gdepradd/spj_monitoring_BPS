@@ -1,0 +1,6 @@
+verifikator 1 = idacandra-pppk@bps.go.id 
+verifikator 2 = latiffitriyan-pppk@bps.go.id 
+verifikator 3 = lannasari-pppk@bps.go.id  
+bendahara = yusmira@bps.go.id 
+ppk = madik@bps.go.id  
+ppspm =  angger@bps.go.id 

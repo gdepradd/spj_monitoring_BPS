@@ -10,7 +10,8 @@
 <body class="flex min-h-screen items-center justify-center bg-ui-page p-4 text-ui-text">
     <div class="w-full max-w-md rounded-2xl border border-ui-border bg-ui-card p-8 shadow-sm">
         <div class="mb-8 text-center">
-            <h1 class="text-2xl font-bold">SPJ Monitoring BPS</h1>
+            <x-application-logo class="mx-auto h-auto w-60" />
+            <h1 class="mt-6 text-2xl font-bold">SPJ Monitoring BPS</h1>
             <p class="mt-2 text-sm text-ui-muted">Masuk menggunakan akun yang diberikan administrator.</p>
         </div>
 

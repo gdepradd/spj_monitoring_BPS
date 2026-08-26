@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             StatusPengajuanSeeder::class,
             StatusVerifikasiSeeder::class,
             StatusPencairanSeeder::class,
-            UserSeeder::class,
+            PegawaiRealSeeder::class,
         ]);
     }
 }

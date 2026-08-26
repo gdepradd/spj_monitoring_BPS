@@ -100,7 +100,6 @@ class UserController extends Controller
                 Rule::unique('users', 'email')->ignore($user?->id_user, 'id_user'),
             ],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
-            'no_hp' => ['required', 'string', 'max:30'],
             'id_role' => ['required', 'exists:roles,id_role'],
             'status_aktif' => ['nullable', 'boolean'],
             // Hanya relevan untuk role verifikator. 'nullable' wajib ada: middleware

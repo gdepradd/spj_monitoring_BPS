@@ -19,11 +19,6 @@
         @error('email')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
     <div>
-        <x-input-label for="no_hp" value="No. HP" />
-        <x-text-input id="no_hp" name="no_hp" value="{{ old('no_hp', $user->no_hp ?? '') }}" required />
-        @error('no_hp')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
-    </div>
-    <div>
         <x-input-label for="id_role" value="Role" />
         <select id="id_role" name="id_role" x-model="idRole" class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card" required>
             <option value="">Pilih role</option>

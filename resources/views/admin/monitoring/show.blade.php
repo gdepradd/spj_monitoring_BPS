@@ -65,7 +65,7 @@
                         <dd class="mt-1">
                             {{ $pengajuan->user->nama_lengkap ?? '-' }}
                             <span class="block text-xs text-ui-muted">
-                                {{ $pengajuan->user->email ?? '-' }} · {{ $pengajuan->user->no_hp ?? '-' }}
+                                {{ $pengajuan->user->email ?? '-' }}
                             </span>
                         </dd>
                     </div>

@@ -25,6 +25,12 @@
 <div class="min-h-screen md:flex">
     <aside class="{{ $sidebarClass }} w-full text-ui-card md:min-h-screen md:w-64">
         <div class="border-b border-ui-card/20 px-6 py-5">
+            {{-- Logo berteks gelap di atas latar transparan, sedangkan sidebar berwarna
+                 pekat dan berbeda-beda per role. Alas putih menjaga logo tetap terbaca
+                 di ketiga warna itu. --}}
+            <div class="mb-4 inline-flex rounded-lg bg-white px-3 py-2">
+                <x-application-logo class="h-7 w-auto" />
+            </div>
             <p class="text-lg font-bold">SPJ Monitoring BPS</p>
             <p class="mt-1 text-xs text-ui-card/80">{{ $user?->nama_lengkap ?? $user?->name ?? '-' }}</p>
         </div>

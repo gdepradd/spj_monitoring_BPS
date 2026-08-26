@@ -1,134 +1,234 @@
-# Setup Scaffold Junior Developer 1 — SPJ Monitoring BPS
+# Panduan Menjalankan SPJ Monitoring BPS
 
-Folder ini adalah **overlay** untuk repository Laravel `spj_monitoring_BPS` yang sudah ada. Salin isi folder ini ke root project Laravel Anda setelah meng-install Laravel Breeze (Blade).
+Aplikasi monitoring Surat Pertanggungjawaban (SPJ) BPS Kabupaten Batang Hari.
+Laravel 10 + Blade + Tailwind, database MySQL.
 
-## 1. Urutan pemasangan
+Panduan ini untuk developer yang baru pertama kali menjalankan proyek ini di
+komputernya sendiri, mulai dari `git pull` sampai backend berjalan.
 
-Jalankan dari root repository:
+---
+
+## 1. Prasyarat
+
+| Kebutuhan | Versi | Catatan |
+|---|---|---|
+| PHP | 8.1 atau lebih baru | wajib ada ekstensi `pdo_mysql`, `mbstring`, `xml`, `curl`, `zip`, `gd` |
+| Composer | 2.x | |
+| Node.js + npm | 18 atau lebih baru | |
+| MySQL / MariaDB | 5.7 atau lebih baru | |
+| `pdo_sqlite` | — | hanya jika ingin menjalankan `php artisan test`, lihat bagian 6 |
+
+Cek ekstensi PHP yang sudah terpasang:
 
 ```bash
-composer install
-cp .env.example .env
-php artisan key:generate
-
-composer require laravel/breeze --dev
-php artisan breeze:install blade
-npm install
+php -m | grep -E "pdo_mysql|mbstring|xml|curl|zip|gd"
 ```
 
-Setelah Breeze selesai membuat file default, **copy seluruh isi scaffold ini ke root project dan izinkan replace/overwrite file yang namanya sama**.
+---
 
-> Penting: file `database/migrations/2014_10_12_000000_create_users_table.php` pada scaffold ini memang menggantikan migration `users` bawaan Laravel karena struktur user pada issue memakai `id_user`, `nama_lengkap`, `id_role`, `status_aktif`, dan `urutan_verifikator`.
+## 2. Data pegawai
 
-## 2. Database MySQL
+Repository ini **privat**. Karena itu `database/seeders/data/pegawai.json` —
+berisi nama, email, dan hash password 36 pegawai — ikut di dalam repo, sehingga
+`php artisan db:seed` langsung berhasil tanpa perlu meminta berkas tambahan.
 
-Atur `.env`:
+Perlakukan isinya sebagai data pribadi: jangan disalin keluar repo, jangan
+ditempel ke chat atau issue, dan jangan pernah menjadikan repository ini publik
+tanpa lebih dulu mengeluarkan berkas itu beserta riwayatnya.
+
+Satu berkas yang tetap **tidak** ikut:
+
+| Berkas | Keterangan |
+|---|---|
+| `data.sql` | Dump database SIMABAR, 2,8 MB, 23 tabel yang tidak dipakai aplikasi ini. Minta lewat japri hanya bila perlu membuat ulang `pegawai.json` dari data terbaru. |
+
+Kalau `pegawai.json` sampai hilang, `php artisan db:seed` akan berhenti dengan
+pesan `Berkas data pegawai tidak ditemukan` dan tabel `users` kosong sehingga
+tidak bisa login. Tabel peran dan status tetap terisi, jadi cukup pulihkan
+berkasnya (`git checkout -- database/seeders/data/pegawai.json`) lalu ulangi.
+
+---
+
+## 3. Dari pull sampai backend berjalan
+
+```bash
+# 1. Ambil kode terbaru
+git clone https://github.com/gdepradd/spj_monitoring_BPS.git
+cd spj_monitoring_BPS
+# (jika repo sudah pernah di-clone, cukup: git pull)
+
+# 2. Pasang dependensi
+composer install
+npm install
+
+# 3. Siapkan berkas konfigurasi
+cp .env.example .env
+php artisan key:generate
+```
+
+Buat database MySQL kosong, lalu sesuaikan bagian ini di `.env`:
 
 ```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=spj_monitoring_bps
+DB_DATABASE=spj_monitoring
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Buat database `spj_monitoring_bps`, lalu jalankan:
+```sql
+CREATE DATABASE spj_monitoring CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Lanjutkan:
 
 ```bash
-php artisan migrate:fresh --seed
+# 4. Bangun struktur tabel
+php artisan migrate
+
+# 5. Isi data awal: peran, status, dan 36 akun pegawai
+php artisan db:seed
+
+# 6. Jalankan dua proses ini di dua terminal terpisah
+npm run dev          # terminal 1 - Vite, biarkan tetap jalan
+php artisan serve    # terminal 2 - backend Laravel
 ```
 
-## 3. Compile frontend
+Buka <http://127.0.0.1:8000>.
+
+`npm run dev` harus tetap berjalan selama pengembangan. Tanpa itu, halaman
+tampil tanpa CSS. Untuk sekali build saja, pakai `npm run build`.
+
+### Kalau menarik perubahan terbaru (`git pull`)
 
 ```bash
-npm run dev
+git pull
+composer install        # bila composer.lock berubah
+npm install             # bila package-lock.json berubah
+php artisan migrate     # bila ada migrasi baru
+php artisan config:clear && php artisan view:clear
 ```
 
-Untuk menjalankan aplikasi:
+---
+
+## 4. Login pertama kali
+
+Password setiap pegawai adalah password yang mereka pakai di aplikasi asal
+(SIMABAR), dan **tersimpan dalam bentuk hash** — tidak ada yang bisa
+membacanya, termasuk pemilik repo.
+
+Untuk keperluan pengembangan di komputer sendiri, ganti password salah satu
+akun secara lokal.
+
+Lihat daftar akun beserta perannya dari database setelah seed:
 
 ```bash
-php artisan serve
+php artisan tinker --execute="
+foreach (App\Models\User::with('role')->orderBy('id_role')->get() as \$u) {
+    echo str_pad(\$u->role->nama_role, 14) . \$u->email . PHP_EOL;
+}
+"
 ```
 
-## 4. Akun dummy
-
-Semua akun dummy menggunakan password:
-
-```text
-password123
-```
-
-| Role | Nama | Email | Urutan |
-|---|---|---|---|
-| Admin | Admin BPS | admin@bps.test | - |
-| Pegawai | Pegawai Satu | pegawai1@bps.test | - |
-| Pegawai | Pegawai Dua | pegawai2@bps.test | - |
-| Verifikator | Ida | ida@bps.test | 1 |
-| Verifikator | Latif | latif@bps.test | 2 |
-| Verifikator | Lanna | lanna@bps.test | 3 |
-| PPK | PPK BPS | ppk@bps.test | - |
-| Bendahara | Bendahara BPS | bendahara@bps.test | - |
-| PPSPM | PPSPM BPS | ppspm@bps.test | - |
-
-Nama Ida, Latif, dan Lanna serta urutan verifikator mengikuti issue. Email, nomor HP, nama akun selain yang ditentukan issue, dan password di atas adalah data dummy implementasi untuk pengujian dan boleh diganti tim.
-
-## 5. Public registration
-
-`routes/auth.php` pada scaffold tidak menyediakan route register. Pembuatan user dilakukan dari role Admin melalui `/admin/users`.
-
-## 6. Remember me
-
-Skema `users` pada issue tidak mencantumkan `remember_token`. Karena itu `LoginRequest` pada scaffold selalu login dengan `remember = false`, dan halaman login tidak menampilkan checkbox Remember Me.
-
-## 7. Status revisi
-
-Sesuai keputusan default pada issue, ketika pegawai memperbaiki pengajuan berstatus `REVISI`, `PengajuanController::update()` mengubah status kembali menjadi `VERIFIKASI_1`.
-
-## 8. Model milik Dev 2
-
-Scaffold Dev 1 sengaja **tidak membuat** model `Verifikasi`, `Ppk`, `Bendahara`, dan `Ppspm`, karena issue membagi model/logic tersebut kepada Dev 2. Dev 1 tetap membuat seluruh migration tabelnya. Halaman detail Pegawai membaca timeline tabel Dev 2 secara read-only menggunakan Query Builder sehingga tidak mengunci struktur model Dev 2.
-
-## 9. Redirect login
-
-- pegawai → `/pegawai/dashboard`
-- verifikator → `/verifikator/dashboard`
-- ppk → `/ppk/dashboard`
-- bendahara → `/bendahara/dashboard`
-- ppspm → `/ppspm/dashboard`
-- admin → `/admin/users`
-
-Route modul Dev 2 akan 404 sampai Dev 2 menambahkan route-nya; redirect-nya sudah disiapkan sesuai kontrak issue.
-
-## 10. Branch strategy
-
-Disarankan mengikuti issue:
-
-```text
-main
-└── develop
-    ├── feature/foundation-database
-    ├── feature/auth-role
-    └── feature/pegawai-pengajuan
-```
-
-Jika repository masih memakai `master`, koordinasikan rename/default branch dengan tim sebelum membuat `develop`.
-
-## 11. Pemeriksaan sebelum push
+Ambil satu email dari daftar itu, lalu ganti passwordnya secara lokal:
 
 ```bash
-php artisan migrate:fresh --seed
-php artisan route:list
+php artisan tinker --execute="
+App\Models\User::firstWhere('email','ISI_EMAIL_DI_SINI')
+    ->update(['password' => Hash::make('rahasia-lokal')]);
+echo 'password lokal diganti';
+"
+```
+
+Masuk dengan email tersebut dan password `rahasia-lokal`.
+
+Perubahan ini hanya berlaku di database lokal Anda. Jangan pernah melakukannya
+di database produksi.
+
+Sebaran akun: 2 admin, 3 verifikator (urutan 1-3), 1 bendahara, 1 PPK, 1 PPSPM,
+dan 28 pegawai. Tujuh akun bertanda nonaktif akan ditolak saat login — itu
+memang disengaja.
+
+---
+
+## 5. Peran dan alur
+
+Pengajuan berjalan berurutan:
+
+```
+Pegawai → Verifikator 1 → Verifikator 2 → Verifikator 3
+        → Bendahara (metode & SPP) → PPK → PPSPM
+        → Bendahara (konfirmasi) → Selesai
+```
+
+Pendaftaran mandiri sengaja ditutup. Pembuatan akun hanya lewat menu Admin di
+`/admin/users`.
+
+---
+
+## 6. Menjalankan test
+
+```bash
 php artisan test
-npm run build
 ```
 
-Pastikan alur minimal berikut bekerja:
+Test memakai `RefreshDatabase`, yang menjalankan `migrate:fresh`. Karena itu
+`phpunit.xml` mengarahkannya ke SQLite in-memory, **terpisah dari database
+pengembangan**. Jangan mengomentari kembali dua baris `DB_CONNECTION` dan
+`DB_DATABASE` di sana — tanpa keduanya, `php artisan test` akan menghapus
+seluruh isi database `spj_monitoring`.
 
-1. Login `pegawai1@bps.test`.
-2. Buat pengajuan.
-3. Pengajuan mendapat nomor `PGJ-YYYYMMDD-XXXX` dan status `DIAJUKAN`.
-4. Daftar/detail hanya menampilkan pengajuan milik pegawai login.
-5. User role lain mendapat 403 saat mencoba route `/pegawai/*`.
-6. Jika status diubah Dev 2 menjadi `REVISI`, pegawai dapat edit dan submit ulang.
-7. Setelah submit revisi, status kembali `VERIFIKASI_1`.
+Test membutuhkan ekstensi `pdo_sqlite`:
+
+```bash
+sudo apt install php8.1-sqlite3      # Ubuntu/Debian
+```
+
+Tanpa ekstensi itu, test gagal dengan pesan `could not find driver`. Itu aman —
+tidak ada data yang tersentuh.
+
+---
+
+## 7. Sebelum commit dan push
+
+Periksa dulu apa yang akan ikut:
+
+```bash
+git status
+```
+
+**Tidak boleh ikut** (sudah diamankan lewat `.gitignore`):
+
+```
+.env
+.env.testing
+data.sql
+```
+
+Kalau salah satunya muncul di `git status`, hentikan dan periksa `.gitignore`
+sebelum melanjutkan. Berkas `.env` memuat APP_KEY dan kredensial database yang
+selalu berbeda tiap mesin, jadi tidak pernah ikut ter-commit meskipun
+repository ini privat.
+
+Sebelum push:
+
+```bash
+npm run build
+php artisan route:list
+```
+
+Hindari menjalankan seluruh rangkaian test di database yang berisi data
+sungguhan sebelum memastikan bagian 6 sudah benar.
+
+---
+
+## 8. Catatan teknis
+
+- **Zona waktu** diatur ke `Asia/Jakarta` (WIB) di `config/app.php` dan
+  `config/database.php`. Keduanya harus sejalan, karena sebagian tabel mengisi
+  `created_at` dari sisi MySQL, bukan dari PHP.
+- **Nomor HP** tidak lagi disimpan. Kolomnya sudah dihapus lewat migrasi
+  `2026_08_26_100000_drop_no_hp_from_users_table`.
+- **Logo** berada di `public/aset/logo-bps.webp` dan dipanggil lewat komponen
+  `<x-application-logo />`. Komponen itu tidak menetapkan ukuran; tentukan
+  tinggi atau lebarnya di tempat pemakaian, jangan keduanya sekaligus.
+- **`PegawaiRealSeeder`** aman dijalankan berulang. Pencocokan memakai email,
+  dan seeder tidak menghapus baris apa pun.

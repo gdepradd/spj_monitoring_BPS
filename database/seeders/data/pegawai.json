@@ -1,0 +1,326 @@
+[
+  {
+    "nama_lengkap": "Administrator",
+    "email": "admin@bps-batanghari.com",
+    "password": "$2y$12$ihkLGTF0Cw0dHKuQFmrHt.ZrUVLoHivQki/Kf2oHRF1cWP8zI5.Wy",
+    "role": "admin",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Admin Sistem"
+  },
+  {
+    "nama_lengkap": "Hartono",
+    "email": "ton@bps.go.id",
+    "password": "$2y$12$WDxg/o8K70eo5AIgXmv/4uD2q00unPTj9BgyLLc3vFzE993fT07g6",
+    "role": "admin",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Kepala BPS Kabupaten Batang Hari"
+  },
+  {
+    "nama_lengkap": "Ida Candra",
+    "email": "idacandra-pppk@bps.go.id",
+    "password": "$2y$12$Yjjaxe4CZ789k5DI/cXdsOUJiW4j/aAxpF3Fg4FaQCz5TnEbJSQ8W",
+    "role": "verifikator",
+    "urutan_verifikator": 1,
+    "status_aktif": true,
+    "jabatan_asal": "Operator Layanan Operasional"
+  },
+  {
+    "nama_lengkap": "Latif Fitriyanto",
+    "email": "latiffitriyan-pppk@bps.go.id",
+    "password": "$2y$12$p06fGeO/nw.Xdis5w2FtNeKbQoo8bZ8NnuNHP3V1b9I20qOVEijom",
+    "role": "verifikator",
+    "urutan_verifikator": 2,
+    "status_aktif": true,
+    "jabatan_asal": "Penata Layanan Operasional"
+  },
+  {
+    "nama_lengkap": "Lanna Sari Siregar",
+    "email": "lannasari-pppk@bps.go.id",
+    "password": "$2y$12$wBN0gWbFDlmjDQJYZz81Su.5QrwbokSVUQy2U0bXtLsBM79eMnGIK",
+    "role": "verifikator",
+    "urutan_verifikator": 3,
+    "status_aktif": true,
+    "jabatan_asal": "Pranata SDM Aparatur Terampil"
+  },
+  {
+    "nama_lengkap": "Madik",
+    "email": "madik@bps.go.id",
+    "password": "$2y$12$j7bCNpP4c.ZHt0TaANosKOFENfXQDnvbX1sUIlbM1d3msrjcokwOu",
+    "role": "ppk",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Analis Pengelola Keuangan APBN Ahli Muda"
+  },
+  {
+    "nama_lengkap": "Angger Halim Ismail",
+    "email": "angger@bps.go.id",
+    "password": "$2y$12$lX8bi7OLB3sS6J4SCASJ3uuJmyLXiTEhqn8BlHM1uKuROBDVgm3xi",
+    "role": "ppspm",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Kasubbag Umum"
+  },
+  {
+    "nama_lengkap": "Yusmiradewi",
+    "email": "yusmira@bps.go.id",
+    "password": "$2y$12$vUR2ZVqO9L9E8.HeZ9WKbunAnPfqjHYdQO9n1E94nLj9SrQiot2ei",
+    "role": "bendahara",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Pranata Keuangan APBN Terampil"
+  },
+  {
+    "nama_lengkap": "A. Puadi",
+    "email": "puadi@bps.go.id",
+    "password": "$2y$12$ML5s2ALe/AWj9VG66cDEZOt649esMsIDwPiTyt4UaIg.L1/cOFdyy",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Muda"
+  },
+  {
+    "nama_lengkap": "Aida Devanty Putri",
+    "email": "aida.devanty.putri@bps-batanghari.com",
+    "password": "$2y$12$W5tzC23T36NDi0t7UfimGu5op5JbltCU.OjgToEvtj4cpFyjLhnJy",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": false,
+    "jabatan_asal": "Staff"
+  },
+  {
+    "nama_lengkap": "Alief Raditia Ali",
+    "email": "raditia.ali@bps.go.id",
+    "password": "$2y$12$kwE6CQ0oNx4y7KniGgDV9eDLvjB8C0lQS4Zl4ONp5069ksh9QtTs2",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Pelaksana"
+  },
+  {
+    "nama_lengkap": "Dias Khusnul Khotimah",
+    "email": "diaskhusnul@bps.go.id",
+    "password": "$2y$12$qCs6dOfKF/s7Uc3iOpoMju7kvQzZc2MTa6aIhZaPGn1T/NI6id2nW",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Disya Pratistaning Ratriatmaja",
+    "email": "disya.pratista@bps.go.id",
+    "password": "$2y$10$DBvfYQ6A1WB2MelwAH3wHeBKJ2uL9579Oh8/k8UjZHuEdLKkr7L9.",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": false,
+    "jabatan_asal": "Pranata Komputer Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Doli Herdianto",
+    "email": "doli@bps.go.id",
+    "password": "$2y$12$S8H7LeHeL/C0jEcD8QaTMei54QNmTZxNORqUSop/RR4h8mhIS/7DW",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Pelaksana"
+  },
+  {
+    "nama_lengkap": "Dwi Satria Firmansyah",
+    "email": "satria.firmansyah@bps.go.id",
+    "password": "$2y$12$ozTnGglialZ23136LV9o8Oo.wvTVbL/SWC7TiSEx4CJpHphDUrJ4m",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Eka Julita Irmayanti",
+    "email": "eka.julita.irmayanti@bps-batanghari.com",
+    "password": "$2y$12$cC9yralAKqsLm1QH5/cnJeqcwBvzGzQDJzGau8aCQsYU559U0ksg6",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": false,
+    "jabatan_asal": "Staff"
+  },
+  {
+    "nama_lengkap": "Erisa",
+    "email": "erisa@bps.go.id",
+    "password": "$2y$12$ZK2T8Oe8XuWW/JA1kOdReehlNqcToEGn6B.Q3VgqBBK.g3xpEY276",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Fathina Mufrodi",
+    "email": "fathina.mufrodi@bps-batanghari.com",
+    "password": "$2y$12$fiYOhk7tRqaL4XE7O0GiAO4RIUk3jtisxO1Ip19NNG.2MIPOTIKuC",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": false,
+    "jabatan_asal": "Staff"
+  },
+  {
+    "nama_lengkap": "Fitri Pratiwi",
+    "email": "fitri.pratiwi@bps.go.id",
+    "password": "$2y$12$AwLHTZe51A.CVVaMBo5B8.JIPQ37xD4/yffMOuNjvN5Thvc8E5L/i",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Habib Asror",
+    "email": "habibasror-pppk@bps.go.id",
+    "password": "$2y$12$fMCVCtXWdr17.N9nh8egtOtHw6pz1IGutkL1N9c5olHup/S2JA7oS",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Operator Layanan Operasional"
+  },
+  {
+    "nama_lengkap": "Hanna Sajidha",
+    "email": "hannasajidha@bps.go.id",
+    "password": "$2y$12$1rrp5nytVxT7V6z3kgceqOQVXStgzYL0KkdmoTqHEJ1f/QJHl.7om",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Pelaksana"
+  },
+  {
+    "nama_lengkap": "Hendra Rusmanto",
+    "email": "hrusmanto@bps.go.id",
+    "password": "$2y$12$oDK5FPQo83JuLKWTXldB8.QwvVFAD4rQSvmcXc5GN97RIFlNXsizO",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Muda"
+  },
+  {
+    "nama_lengkap": "Imelda Salsabila",
+    "email": "imelda.salsabila@bps.go.id",
+    "password": "$2y$12$KVx/9gs3L2Iam87SNLuM1ehztWM.A8RWuewYwKY4ofCviy2mmz/Ve",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Isyak",
+    "email": "isyak@bps.go.id",
+    "password": "$2y$12$cBr69wDZsaJKVQ7DftZbfuoWoyVaq21sAJAHjX9RebsFWeGKgYZQa",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Mahir"
+  },
+  {
+    "nama_lengkap": "Johani",
+    "email": "johani@bps.go.id",
+    "password": "$2y$12$ybty4pMqsliEEjdAEpg6meuzz9qurBrjk2f71g7Js/efLofji3KvS",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Penyelia"
+  },
+  {
+    "nama_lengkap": "Jupri",
+    "email": "jupri@bps.go.id",
+    "password": "$2y$12$4A.tytXo3CuMOw7KYYwrde7Na/avYyjFsg4IAxI1R2Tn5irh1e5r6",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Penyelia"
+  },
+  {
+    "nama_lengkap": "Linda Annisa",
+    "email": "linda.annisa@bps.go.id",
+    "password": "$2y$12$no0LqYXxZiG7lqFb/qJ.3e6Z0fMutd4.ZCzklHDIVdzYB1iRhZF7C",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": false,
+    "jabatan_asal": "Statistisi Ahli Muda"
+  },
+  {
+    "nama_lengkap": "Marini Syafitri",
+    "email": "marini.syafitri@bps.go.id",
+    "password": "$2y$12$hCaWMrCp41Hg2JMIjYGBguFmeozZiBBcjnlwZuGQjSkpJcZPMwDg.",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": false,
+    "jabatan_asal": "Statistisi Ahli Muda"
+  },
+  {
+    "nama_lengkap": "Maulana Pandudinata",
+    "email": "maulana.pandudinata@bps.go.id",
+    "password": "$2y$12$MMe0dsMZ1r4mfF57KjVE8OccfEctl02OfycFMjj1EAlglLjqS5CMq",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Pranata Komputer Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Muhammad Al Fatih",
+    "email": "muhammad.al.fatih@bps-batanghari.com",
+    "password": "$2y$12$8JgSnIzcPc5rW.pfiByTs.Ue6IbtbQw1y277dI73n0XF.Xoqdut56",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": false,
+    "jabatan_asal": "Staff"
+  },
+  {
+    "nama_lengkap": "Nafisa Qurrotul Ayuni",
+    "email": "nafisa.ayuni@bps.go.id",
+    "password": "$2y$12$7cJqfyNQkRMZHImEZvuCVefBzyUvkjBWxF.cm/WyMxDq0G7yrc4yu",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Nofer Satrial",
+    "email": "nofersatrial-pppk@bps.go.id",
+    "password": "$2y$12$.P6PRAxKuTlj4eMd69/8/uxIwl2sZmpLhpxlRs6C0k.AwM265OHuS",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Penata Layanan Operasional"
+  },
+  {
+    "nama_lengkap": "Rensy Hasibuan",
+    "email": "rensy.hasibuan@bps.go.id",
+    "password": "$2y$12$kSdqGAjeXzCSrYsDrHzK.uTU4gZbgBrF24dXrtRWQSpyge9XDS64y",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  },
+  {
+    "nama_lengkap": "Rina Agustina",
+    "email": "rinagus@bps.go.id",
+    "password": "$2y$12$xeNaWkEMiKB22L7d0NnkBOGZrljSGo2VqZWkWuCjinIVcjuxSQZe6",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Muda"
+  },
+  {
+    "nama_lengkap": "Septie Wulandary",
+    "email": "septie@bps.go.id",
+    "password": "$2y$12$KZYhaD9PuM0.WWFOFSfjGe/rD9KoGa/HE2sJDlYQzH2KB1Y3VITHi",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Madya"
+  },
+  {
+    "nama_lengkap": "Simon Christofher Nainggolan",
+    "email": "simon.christofher@bps.go.id",
+    "password": "$2y$12$TIpfkRbcUZoaNOV.hDjdr.Pg6d9J8YFVt3rJ01Pf5SIrAv2moBMlS",
+    "role": "pegawai",
+    "urutan_verifikator": null,
+    "status_aktif": true,
+    "jabatan_asal": "Statistisi Ahli Pertama"
+  }
+]

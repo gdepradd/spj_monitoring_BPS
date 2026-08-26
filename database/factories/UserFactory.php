@@ -22,7 +22,6 @@ class UserFactory extends Factory
             'nama_lengkap' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
-            'no_hp' => '08' . fake()->numerify('##########'),
             'id_role' => $role->id_role,
             'status_aktif' => true,
             'urutan_verifikator' => null,
