@@ -24,8 +24,9 @@ class UserController extends Controller
     public function create(): View
     {
         $roles = Role::orderBy('nama_role')->get();
+        $verifikatorRoleId = $roles->firstWhere('nama_role', 'verifikator')?->id_role;
 
-        return view('admin.users.create', compact('roles'));
+        return view('admin.users.create', compact('roles', 'verifikatorRoleId'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -47,8 +48,9 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         $roles = Role::orderBy('nama_role')->get();
+        $verifikatorRoleId = $roles->firstWhere('nama_role', 'verifikator')?->id_role;
 
-        return view('admin.users.edit', compact('user', 'roles'));
+        return view('admin.users.edit', compact('user', 'roles', 'verifikatorRoleId'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -101,7 +103,11 @@ class UserController extends Controller
             'no_hp' => ['required', 'string', 'max:30'],
             'id_role' => ['required', 'exists:roles,id_role'],
             'status_aktif' => ['nullable', 'boolean'],
+            // Hanya relevan untuk role verifikator. 'nullable' wajib ada: middleware
+            // ConvertEmptyStringsToNull mengubah input kosong jadi null, dan tanpa
+            // 'nullable' rule 'integer' menolak null sehingga role lain ikut terblokir.
             'urutan_verifikator' => [
+                'nullable',
                 Rule::requiredIf(function () use ($request) {
                     return Role::find($request->input('id_role'))?->nama_role === 'verifikator';
                 }),

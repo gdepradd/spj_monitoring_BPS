@@ -1,6 +1,11 @@
+@php
+    $roleAwal = (string) old('id_role', $user->id_role ?? '');
+    $roleAwalVerifikator = $roleAwal !== '' && $roleAwal === (string) $verifikatorRoleId;
+@endphp
 <x-app-layout title="Edit User">
     <div class="max-w-2xl rounded-xl border border-ui-border bg-ui-card p-6">
-        <form method="POST" action="{{ route('admin.users.update', $user) }}" class="space-y-5">
+        <form method="POST" action="{{ route('admin.users.update', $user) }}" class="space-y-5"
+                  x-data="{ idRole: @js($roleAwal), get isVerifikator() { return this.idRole === @js((string) $verifikatorRoleId) } }">
             @csrf @method('PUT')
 
     <div>
@@ -20,7 +25,7 @@
     </div>
     <div>
         <x-input-label for="id_role" value="Role" />
-        <select id="id_role" name="id_role" class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card" required>
+        <select id="id_role" name="id_role" x-model="idRole" class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card" required>
             <option value="">Pilih role</option>
             @foreach($roles as $role)
                 <option value="{{ $role->id_role }}" @selected((string) old('id_role', $user->id_role ?? '') === (string) $role->id_role)>{{ $role->nama_role }}</option>
@@ -28,9 +33,12 @@
         </select>
         @error('id_role')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
-    <div>
-        <x-input-label for="urutan_verifikator" value="Urutan Verifikator (1-3, hanya untuk role verifikator)" />
-        <x-text-input id="urutan_verifikator" name="urutan_verifikator" type="number" min="1" max="3" value="{{ old('urutan_verifikator', $user->urutan_verifikator ?? '') }}" />
+    {{-- Hanya relevan untuk role verifikator: disembunyikan sekaligus di-disable untuk
+         role lain supaya field ini tidak ikut terkirim saat form disubmit. --}}
+    <div x-show="isVerifikator" @if(! $roleAwalVerifikator) style="display: none" @endif>
+        <x-input-label for="urutan_verifikator" value="Urutan Verifikator (1-3)" />
+        <x-text-input id="urutan_verifikator" name="urutan_verifikator" type="number" min="1" max="3" x-bind:disabled="! isVerifikator" @if(! $roleAwalVerifikator) disabled @endif value="{{ old('urutan_verifikator', $user->urutan_verifikator ?? '') }}" />
+        <p class="mt-1 text-xs text-ui-muted">Menentukan verifikator ini bertugas di tahap ke berapa.</p>
         @error('urutan_verifikator')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
     <div>

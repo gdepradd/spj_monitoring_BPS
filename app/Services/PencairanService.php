@@ -146,7 +146,7 @@ class PencairanService
                 'nama_bank' => $data['nama_bank'] ?? null,
                 'no_rekening' => $data['no_rekening'] ?? null,
                 'atas_nama_rekening' => $data['atas_nama_rekening'] ?? null,
-                'catatan' => $data['catatan'] ?? null,
+                    'catatan' => $data['catatan'] ?? null,
             ]);
 
             $statusSelesai = StatusPengajuan::where('kode_status', 'SELESAI')->firstOrFail();
