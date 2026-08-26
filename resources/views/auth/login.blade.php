@@ -59,9 +59,9 @@
         </div>
 
             <div class="flex items-center justify-between">
-                @if(Route::has('password.request'))
+                <!-- @if(Route::has('password.request'))
                     <a class="text-sm text-pov-pengajuan hover:underline" href="{{ route('password.request') }}">Lupa password?</a>
-                @endif
+                @endif -->
                 <x-primary-button>Masuk</x-primary-button>
             </div>
         </form>
