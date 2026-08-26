@@ -35,9 +35,9 @@
     </div>
     {{-- Hanya relevan untuk role verifikator: disembunyikan sekaligus di-disable untuk
          role lain supaya field ini tidak ikut terkirim saat form disubmit. --}}
-    <div x-show="isVerifikator" @if(! $roleAwalVerifikator) style="display: none" @endif>
+    <div x-show="isVerifikator" @style(['display: none' => ! $roleAwalVerifikator])>
         <x-input-label for="urutan_verifikator" value="Urutan Verifikator (1-3)" />
-        <x-text-input id="urutan_verifikator" name="urutan_verifikator" type="number" min="1" max="3" x-bind:disabled="! isVerifikator" @if(! $roleAwalVerifikator) disabled @endif value="{{ old('urutan_verifikator', $user->urutan_verifikator ?? '') }}" />
+        <x-text-input id="urutan_verifikator" name="urutan_verifikator" type="number" min="1" max="3" x-bind:disabled="! isVerifikator" :disabled="! $roleAwalVerifikator" value="{{ old('urutan_verifikator', $user->urutan_verifikator ?? '') }}" />
         <p class="mt-1 text-xs text-ui-muted">Menentukan verifikator ini bertugas di tahap ke berapa.</p>
         @error('urutan_verifikator')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
