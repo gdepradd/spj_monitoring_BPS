@@ -218,7 +218,9 @@ class Pengajuan extends Model
                 'status'  => $logBayar ? 'Selesai' : 'Sedang Diproses',
                 'dokumen' => array_filter([
                     'Metode'         => $this->metode_label,
-                    'Tgl. Transfer'  => $logBayar?->tgl_transfer,
+                    'Cara Bayar'     => $logBayar?->cara_bayar === 'TUNAI' ? 'Tunai' : ($logBayar?->cara_bayar ? 'Transfer' : null),
+                    'Tgl. Dibayar'   => $logBayar?->tgl_transfer,
+                    'No. Kwitansi'   => $logBayar?->no_kwitansi,
                     'Nama Bank'      => $logBayar?->nama_bank,
                     'No. Rekening'   => $logBayar?->no_rekening,
                     'Atas Nama'      => $logBayar?->atas_nama_rekening,
@@ -267,8 +269,6 @@ class Pengajuan extends Model
                 'Tgl. Ajukan Kemenkeu' => $logPpspm?->tgl_ajukan_kemenkeu,
                 'No. SPM'              => $logPpspm?->no_spm,
                 'Tgl. SPM'             => $logPpspm?->tgl_spm,
-                'No. SP2D'             => $logPpspm?->no_sp2d,
-                'Tgl. SP2D'            => $logPpspm?->tgl_sp2d,
             ]),
         ]);
 
@@ -280,10 +280,15 @@ class Pengajuan extends Model
             'catatan' => $logKonfirmasi?->catatan,
             'status'  => $logKonfirmasi ? 'Selesai' : ($logPpspm ? 'Sedang Diproses' : 'Belum Dimulai'),
             'dokumen' => array_filter([
-                'Tgl. Transfer' => $logKonfirmasi?->tgl_transfer,
                 'No. SPM'       => $logKonfirmasi?->no_spm ?? $logPpspm?->no_spm,
-                'No. SP2D'      => $logKonfirmasi?->no_sp2d ?? $logPpspm?->no_sp2d,
-                'Tgl. SP2D'     => $logKonfirmasi?->tgl_sp2d ?? $logPpspm?->tgl_sp2d,
+                // SP2D diterbitkan pada tahap konfirmasi, bukan oleh PPSPM.
+                'No. SP2D'      => $logKonfirmasi?->no_sp2d,
+                'Tgl. SP2D'     => $logKonfirmasi?->tgl_sp2d,
+                'Cara Bayar'    => $this->metode_pembayaran === 'LS_PIHAK_KETIGA'
+                    ? 'Transfer Kemenkeu'
+                    : ($logKonfirmasi?->cara_bayar === 'TUNAI' ? 'Tunai' : ($logKonfirmasi?->cara_bayar ? 'Transfer' : null)),
+                ($logKonfirmasi?->cara_bayar === 'TUNAI' ? 'Tgl. Pencairan' : 'Tgl. Transfer') => $logKonfirmasi?->tgl_transfer,
+                'No. Kwitansi'  => $logKonfirmasi?->no_kwitansi,
                 'Nama Bank'     => $logKonfirmasi?->nama_bank,
                 'No. Rekening'  => $logKonfirmasi?->no_rekening,
                 'Atas Nama'     => $logKonfirmasi?->atas_nama_rekening,

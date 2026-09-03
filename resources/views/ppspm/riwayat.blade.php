@@ -12,7 +12,7 @@
                     <tr class="bg-gray-100">
                         <th class="border py-2 px-4">No. Pengajuan</th>
                         <th class="border py-2 px-4">Pemohon</th>
-                        <th class="border py-2 px-4">No. SPM / SP2D</th>
+                        <th class="border py-2 px-4">No. SPM</th>
                         <th class="border py-2 px-4">Tanggal Diproses</th>
                         <th class="border py-2 px-4">Aksi / Status</th>
                         <th class="border py-2 px-4">Catatan</th>
@@ -25,7 +25,10 @@
                             <td class="border py-2 px-4">{{ $item->pengajuan->no_pengajuan ?? '-' }}</td>
                             <td class="border py-2 px-4">{{ $item->pengajuan->user->nama_lengkap ?? $item->pengajuan->user->name ?? '-' }}</td>
                             <td class="border py-2 px-4 text-sm">
-                                {{ $item->no_spm ?? '-' }} / {{ $item->no_sp2d ?? '-' }}
+                                {{ $item->no_spm ?? '-' }}
+                                @if($item->tgl_spm)
+                                    <span class="text-gray-500">({{ \Carbon\Carbon::parse($item->tgl_spm)->format('d M Y') }})</span>
+                                @endif
                             </td>
                             <td class="border py-2 px-4">{{ $item->tanggal_proses ? \Carbon\Carbon::parse($item->tanggal_proses)->format('d M Y H:i') : '-' }}</td>
                             <td class="border py-2 px-4">

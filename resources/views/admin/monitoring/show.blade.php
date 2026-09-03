@@ -174,7 +174,9 @@
                                     'No. SPM' => $b->no_spm,
                                     'No. SP2D' => $b->no_sp2d,
                                     'Tgl. SP2D' => $b->tgl_sp2d ? $tanggal($b->tgl_sp2d) : null,
-                                    'Tgl. Transfer' => $b->tgl_transfer ? $tanggal($b->tgl_transfer) : null,
+                                    'Cara Bayar' => $b->cara_bayar === 'TUNAI' ? 'Tunai' : ($b->cara_bayar ? 'Transfer' : null),
+                                    ($b->cara_bayar === 'TUNAI' ? 'Tgl. Dibayarkan' : 'Tgl. Transfer') => $b->tgl_transfer ? $tanggal($b->tgl_transfer) : null,
+                                    'No. Kwitansi' => $b->no_kwitansi,
                                     'Nama Bank' => $b->nama_bank,
                                     'No. Rekening' => $b->no_rekening,
                                     'Atas Nama' => $b->atas_nama_rekening,
@@ -256,9 +258,8 @@
                                     <div><dt class="text-ui-muted">Tgl. Kemenkeu</dt><dd class="mt-0.5 font-medium">{{ $tanggal($p->tgl_ajukan_kemenkeu) }}</dd></div>
                                     <div><dt class="text-ui-muted">No. SPM</dt><dd class="mt-0.5 font-medium">{{ $p->no_spm ?? '-' }}</dd></div>
                                     <div><dt class="text-ui-muted">Tgl. SPM</dt><dd class="mt-0.5 font-medium">{{ $tanggal($p->tgl_spm) }}</dd></div>
-                                    <div><dt class="text-ui-muted">No. SP2D</dt><dd class="mt-0.5 font-medium">{{ $p->no_sp2d ?? '-' }}</dd></div>
-                                    <div><dt class="text-ui-muted">Tgl. SP2D</dt><dd class="mt-0.5 font-medium">{{ $tanggal($p->tgl_sp2d) }}</dd></div>
                                 </dl>
+                                <p class="mt-2 text-xs text-ui-muted">SP2D dicatat Bendahara pada tahap konfirmasi.</p>
                                 @if($p->catatan)
                                     <p class="mt-2 text-sm"><span class="text-ui-muted">Catatan:</span> {{ $p->catatan }}</p>
                                 @endif

@@ -331,7 +331,9 @@ class MonitoringController extends Controller
                 NULL as tgl_ajukan_kemenkeu,
                 NULL as nama_bank,
                 NULL as no_rekening,
-                NULL as atas_nama_rekening
+                NULL as atas_nama_rekening,
+                NULL as cara_bayar,
+                NULL as no_kwitansi
             ");
     }
 
@@ -370,7 +372,9 @@ class MonitoringController extends Controller
                 " . $kolom('tgl_ajukan_kemenkeu') . ",
                 " . $kolom('nama_bank') . ",
                 " . $kolom('no_rekening') . ",
-                " . $kolom('atas_nama_rekening') . "
+                " . $kolom('atas_nama_rekening') . ",
+                " . $kolom('cara_bayar') . ",
+                " . $kolom('no_kwitansi') . "
             ");
     }
 
@@ -448,7 +452,9 @@ class MonitoringController extends Controller
                     'No. SPM' => $row->no_spm,
                     'No. SP2D' => $row->no_sp2d,
                     'Tgl. SP2D' => $this->tanggal($row->tgl_sp2d),
-                    'Tgl. Transfer' => $this->tanggal($row->tgl_transfer),
+                    'Cara Bayar' => $row->cara_bayar ? ucfirst(strtolower($row->cara_bayar)) : null,
+                    'Tgl. Bayar' => $this->tanggal($row->tgl_transfer),
+                    'No. Kwitansi' => $row->no_kwitansi,
                     'Bank' => $row->nama_bank,
                     'No. Rekening' => $row->no_rekening,
                     'Atas Nama' => $row->atas_nama_rekening,
@@ -461,8 +467,6 @@ class MonitoringController extends Controller
                     'Tgl. Kemenkeu' => $this->tanggal($row->tgl_ajukan_kemenkeu),
                     'No. SPM' => $row->no_spm,
                     'Tgl. SPM' => $this->tanggal($row->tgl_spm),
-                    'No. SP2D' => $row->no_sp2d,
-                    'Tgl. SP2D' => $this->tanggal($row->tgl_sp2d),
                 ],
                 default => [],
             };

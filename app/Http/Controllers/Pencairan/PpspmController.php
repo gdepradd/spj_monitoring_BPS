@@ -62,20 +62,16 @@ class PpspmController extends Controller
                 ->with('error', 'Pengajuan ini tidak berada pada tahap PPSPM.');
         }
 
-        // Nomor SPM & SP2D di sini menjadi rujukan Bendahara saat konfirmasi pencairan.
+        // PPSPM menerbitkan SPM; nomor SP2D baru dicatat Bendahara saat konfirmasi.
         $data = $request->validate([
             'tgl_ajukan_kemenkeu' => 'required|date',
             'no_spm' => 'required|string|max:100',
             'tgl_spm' => 'required|date',
-            'no_sp2d' => 'required|string|max:100',
-            'tgl_sp2d' => 'required|date',
             'catatan' => 'nullable|string|max:5000',
         ], [
             'tgl_ajukan_kemenkeu.required' => 'Tanggal pengajuan ke Kemenkeu wajib diisi.',
             'no_spm.required' => 'Nomor SPM wajib diisi.',
             'tgl_spm.required' => 'Tanggal SPM wajib diisi.',
-            'no_sp2d.required' => 'Nomor SP2D wajib diisi.',
-            'tgl_sp2d.required' => 'Tanggal SP2D wajib diisi.',
         ]);
 
         $this->pencairanService->ppspmAjukanKemenkeu($pengajuan, $data);

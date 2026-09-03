@@ -16,6 +16,9 @@ class Bendahara extends Model
         'id_pengajuan',
         'id_user',
         'tahap',
+        // UP/TUP bisa transfer atau tunai; kwitansi dipakai pada pembayaran tunai.
+        'cara_bayar',
+        'no_kwitansi',
         'tanggal_proses',
         'no_spp',
         'tgl_spp',

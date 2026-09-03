@@ -64,16 +64,23 @@ class PencairanService
     public function bendaharaBayarLangsung(Pengajuan $pengajuan, array $data)
     {
         return DB::transaction(function () use ($pengajuan, $data) {
+            $caraBayar = ($data['cara_bayar'] ?? 'TRANSFER') === 'TUNAI' ? 'TUNAI' : 'TRANSFER';
+            $tunai = $caraBayar === 'TUNAI';
+
             Bendahara::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
                 'id_user' => auth()->id(),
                 'tahap' => 'PEMBAYARAN_LANGSUNG',
                 'tanggal_proses' => now(),
                 'id_status' => StatusPencairan::ACC,
+                'cara_bayar' => $caraBayar,
+                // tgl_transfer menampung tanggal uang keluar untuk kedua cara bayar.
                 'tgl_transfer' => $data['tgl_transfer'] ?? null,
-                'nama_bank' => $data['nama_bank'] ?? null,
-                'no_rekening' => $data['no_rekening'] ?? null,
-                'atas_nama_rekening' => $data['atas_nama_rekening'] ?? null,
+                // Data rekening hanya relevan pada transfer, kwitansi hanya pada tunai.
+                'nama_bank' => $tunai ? null : ($data['nama_bank'] ?? null),
+                'no_rekening' => $tunai ? null : ($data['no_rekening'] ?? null),
+                'atas_nama_rekening' => $tunai ? null : ($data['atas_nama_rekening'] ?? null),
+                'no_kwitansi' => $tunai ? ($data['no_kwitansi'] ?? null) : null,
                 'catatan' => $data['catatan'] ?? null,
             ]);
 
@@ -114,10 +121,9 @@ class PencairanService
                 'id_status' => StatusPencairan::ACC,
                 'tgl_ajukan_kemenkeu' => $data['tgl_ajukan_kemenkeu'] ?? null,
                 'catatan' => $data['catatan'] ?? null,
+                // PPSPM menerbitkan SPM saja; SP2D dicatat Bendahara saat konfirmasi.
                 'no_spm' => $data['no_spm'] ?? null,
-            'tgl_spm' => $data['tgl_spm'] ?? null,
-            'no_sp2d' => $data['no_sp2d'] ?? null,
-            'tgl_sp2d' => $data['tgl_sp2d'] ?? null,
+                'tgl_spm' => $data['tgl_spm'] ?? null,
             ]);
 
             $statusKonfirmasi = StatusPengajuan::where('kode_status', 'PROSES_KONFIRMASI_BENDAHARA')->firstOrFail();
@@ -130,8 +136,15 @@ class PencairanService
    public function bendaharaKonfirmasi(Pengajuan $pengajuan, array $data)
     {
         return DB::transaction(function () use ($pengajuan, $data) {
-            // Nomor SPM/SP2D berasal dari PPSPM; request hanya dipakai sebagai penimpa manual.
+            // Nomor SPM diterbitkan PPSPM; SP2D diinput Bendahara pada tahap ini.
             $ppspm = $pengajuan->ppspm()->orderByDesc('id_ppspm')->first();
+
+            // LS Pihak Ketiga selalu transfer oleh Kemenkeu; LS Bendahara mengikuti pilihan.
+            $caraBayar = $pengajuan->metode_pembayaran === 'LS_PIHAK_KETIGA'
+                ? 'TRANSFER'
+                : (($data['cara_bayar'] ?? 'TRANSFER') === 'TUNAI' ? 'TUNAI' : 'TRANSFER');
+
+            $tunai = $caraBayar === 'TUNAI';
 
             Bendahara::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
@@ -140,13 +153,18 @@ class PencairanService
                 'tanggal_proses' => now(),
                 'id_status' => StatusPencairan::ACC,
                 'no_spm' => $data['no_spm'] ?? $ppspm?->no_spm,
-                'no_sp2d' => $data['no_sp2d'] ?? $ppspm?->no_sp2d,
-                'tgl_sp2d' => $data['tgl_sp2d'] ?? $ppspm?->tgl_sp2d,
+                // SP2D kini bersumber dari input Bendahara, bukan lagi dari PPSPM.
+                'no_sp2d' => $data['no_sp2d'] ?? null,
+                'tgl_sp2d' => $data['tgl_sp2d'] ?? null,
+                'cara_bayar' => $caraBayar,
+                // tgl_transfer menampung tanggal uang keluar untuk semua jalur.
                 'tgl_transfer' => $data['tgl_transfer'] ?? null,
-                'nama_bank' => $data['nama_bank'] ?? null,
-                'no_rekening' => $data['no_rekening'] ?? null,
-                'atas_nama_rekening' => $data['atas_nama_rekening'] ?? null,
-                    'catatan' => $data['catatan'] ?? null,
+                // Rekening hanya relevan pada transfer, kwitansi hanya pada tunai.
+                'nama_bank' => $tunai ? null : ($data['nama_bank'] ?? null),
+                'no_rekening' => $tunai ? null : ($data['no_rekening'] ?? null),
+                'atas_nama_rekening' => $tunai ? null : ($data['atas_nama_rekening'] ?? null),
+                'no_kwitansi' => $tunai ? ($data['no_kwitansi'] ?? null) : null,
+                'catatan' => $data['catatan'] ?? null,
             ]);
 
             $statusSelesai = StatusPengajuan::where('kode_status', 'SELESAI')->firstOrFail();

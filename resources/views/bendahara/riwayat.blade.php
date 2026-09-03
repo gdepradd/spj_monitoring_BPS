@@ -33,9 +33,16 @@
                                         <span class="text-gray-500">({{ \Carbon\Carbon::parse($item->tgl_spp)->format('d M Y') }})</span>
                                     @endif
                                 @elseif(in_array($item->tahap, ['KONFIRMASI', 'PEMBAYARAN_LANGSUNG']))
-                                    SP2D: {{ $item->no_sp2d ?? '-' }}
-                                    @if($item->tgl_transfer)
-                                        <span class="text-gray-500">(transfer {{ \Carbon\Carbon::parse($item->tgl_transfer)->format('d M Y') }})</span>
+                                    @if($item->cara_bayar === 'TUNAI')
+                                        Kwitansi: {{ $item->no_kwitansi ?? '-' }}
+                                        @if($item->tgl_transfer)
+                                            <span class="text-gray-500">(tunai {{ \Carbon\Carbon::parse($item->tgl_transfer)->format('d M Y') }})</span>
+                                        @endif
+                                    @else
+                                        SP2D: {{ $item->no_sp2d ?? '-' }}
+                                        @if($item->tgl_transfer)
+                                            <span class="text-gray-500">(transfer {{ \Carbon\Carbon::parse($item->tgl_transfer)->format('d M Y') }})</span>
+                                        @endif
                                     @endif
                                 @else
                                     -

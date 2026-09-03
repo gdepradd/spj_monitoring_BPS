@@ -77,24 +77,54 @@
                                     <input type="date" name="tgl_ajukan_kemenkeu" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                 </div>
                                
-                                <div class="grid grid-cols-2 gap-4 mb-4">
-    <div>
-        <label class="block text-sm font-medium text-gray-700">No. SPM</label>
-        <input type="text" name="no_spm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Tanggal SPM</label>
-        <input type="date" name="tgl_spm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">No. SP2D</label>
-        <input type="text" name="no_sp2d" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Tanggal SP2D</label>
-        <input type="date" name="tgl_sp2d" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-    </div>
-</div>
+                                {{-- Nomor SPM umumnya hanya berbeda beberapa karakter dari nomor SPP,
+                                     jadi kolomnya diisi awal dengan nomor SPP dan tinggal disunting.
+                                     Isian tetap bisa dikosongkan bila SPM benar-benar berbeda. --}}
+                                <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2"
+                                     x-data="{
+                                         dasarSpp: @js($spp?->no_spp ?? ''),
+                                         noSpm: @js(old('no_spm', $spp?->no_spp ?? '')),
+                                     }">
+                                    <div>
+                                        <label for="no_spm" class="block text-sm font-medium text-gray-700">No. SPM</label>
+
+                                        <input type="text" id="no_spm" name="no_spm" x-model="noSpm" required
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+
+                                        <template x-if="dasarSpp">
+                                            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                                                <span class="text-gray-500">
+                                                    Dasar dari SPP: <span class="font-medium text-gray-700" x-text="dasarSpp"></span>
+                                                </span>
+
+                                                <button type="button" @click="noSpm = dasarSpp"
+                                                        x-show="noSpm !== dasarSpp"
+                                                        class="font-semibold text-indigo-600 hover:underline">
+                                                    Samakan dengan SPP
+                                                </button>
+
+                                                <button type="button" @click="noSpm = ''"
+                                                        x-show="noSpm !== ''"
+                                                        class="font-semibold text-gray-500 hover:underline">
+                                                    Kosongkan
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        @error('no_spm')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+
+                                    <div>
+                                        <label for="tgl_spm" class="block text-sm font-medium text-gray-700">Tanggal SPM</label>
+                                        <input type="date" id="tgl_spm" name="tgl_spm" value="{{ old('tgl_spm') }}" required
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        @error('tgl_spm')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+                                </div>
+
+                                <p class="mb-4 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                                    Nomor SP2D tidak diisi di sini. SP2D dicatat Bendahara pada tahap konfirmasi pencairan.
+                                </p>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700">Catatan (Opsional)</label>
                                     <textarea name="catatan" rows="3" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>

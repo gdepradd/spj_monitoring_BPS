@@ -157,19 +157,27 @@
                                         <td class="py-2 pr-4">{{ $ppspm->tgl_spm ? \Carbon\Carbon::parse($ppspm->tgl_spm)->format('d M Y') : '-' }}</td>
                                         <td class="py-2">{{ $ppspm->user->nama_lengkap ?? $ppspm->user->name ?? 'PPSPM' }}</td>
                                     </tr>
-                                    <tr>
-                                        <td class="py-2 pr-4 font-medium">SP2D (PPSPM)</td>
-                                        <td class="py-2 pr-4">{{ $ppspm->no_sp2d ?? '-' }}</td>
-                                        <td class="py-2 pr-4">{{ $ppspm->tgl_sp2d ? \Carbon\Carbon::parse($ppspm->tgl_sp2d)->format('d M Y') : '-' }}</td>
-                                        <td class="py-2">{{ $ppspm->user->nama_lengkap ?? $ppspm->user->name ?? 'PPSPM' }}</td>
-                                    </tr>
                                 @endif
 
                                 @php $transfer = $konfirmasi ?? $pembayaranLangsung; @endphp
-                                @if($transfer)
+
+                                {{-- SP2D diterbitkan pada tahap konfirmasi Bendahara --}}
+                                @if($konfirmasi && $konfirmasi->no_sp2d)
                                     <tr>
-                                        <td class="py-2 pr-4 font-medium">Transfer / Pencairan</td>
-                                        <td class="py-2 pr-4">{{ $transfer->no_sp2d ?? '-' }}</td>
+                                        <td class="py-2 pr-4 font-medium">SP2D (Bendahara)</td>
+                                        <td class="py-2 pr-4">{{ $konfirmasi->no_sp2d }}</td>
+                                        <td class="py-2 pr-4">{{ $konfirmasi->tgl_sp2d ? \Carbon\Carbon::parse($konfirmasi->tgl_sp2d)->format('d M Y') : '-' }}</td>
+                                        <td class="py-2">{{ $konfirmasi->user->nama_lengkap ?? $konfirmasi->user->name ?? 'Bendahara' }}</td>
+                                    </tr>
+                                @endif
+
+                                @if($transfer)
+                                    @php $tunai = $transfer->cara_bayar === 'TUNAI'; @endphp
+                                    <tr>
+                                        <td class="py-2 pr-4 font-medium">
+                                            {{ $tunai ? 'Pembayaran Tunai' : 'Transfer / Pencairan' }}
+                                        </td>
+                                        <td class="py-2 pr-4">{{ $tunai ? ($transfer->no_kwitansi ?? '-') : ($transfer->no_sp2d ?? '-') }}</td>
                                         <td class="py-2 pr-4">{{ $transfer->tgl_transfer ? \Carbon\Carbon::parse($transfer->tgl_transfer)->format('d M Y') : '-' }}</td>
                                         <td class="py-2">{{ $transfer->user->nama_lengkap ?? $transfer->user->name ?? 'Bendahara' }}</td>
                                     </tr>
@@ -181,17 +189,33 @@
                     @if($transfer ?? false)
                         <dl class="mt-5 grid gap-5 sm:grid-cols-3">
                             <div>
-                                <dt class="text-xs font-medium uppercase text-ui-muted">Nama Bank</dt>
-                                <dd class="mt-1">{{ $transfer->nama_bank ?? '-' }}</dd>
+                                <dt class="text-xs font-medium uppercase text-ui-muted">Cara Bayar</dt>
+                                <dd class="mt-1">{{ $transfer->cara_bayar === 'TUNAI' ? 'Tunai' : 'Transfer' }}</dd>
                             </div>
-                            <div>
-                                <dt class="text-xs font-medium uppercase text-ui-muted">No. Rekening</dt>
-                                <dd class="mt-1">{{ $transfer->no_rekening ?? '-' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs font-medium uppercase text-ui-muted">Atas Nama</dt>
-                                <dd class="mt-1">{{ $transfer->atas_nama_rekening ?? '-' }}</dd>
-                            </div>
+
+                            @if($transfer->cara_bayar === 'TUNAI')
+                                <div>
+                                    <dt class="text-xs font-medium uppercase text-ui-muted">No. Kwitansi</dt>
+                                    <dd class="mt-1">{{ $transfer->no_kwitansi ?? '-' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium uppercase text-ui-muted">Tanggal Dibayarkan</dt>
+                                    <dd class="mt-1">{{ $transfer->tgl_transfer ? \Carbon\Carbon::parse($transfer->tgl_transfer)->format('d M Y') : '-' }}</dd>
+                                </div>
+                            @else
+                                <div>
+                                    <dt class="text-xs font-medium uppercase text-ui-muted">Nama Bank</dt>
+                                    <dd class="mt-1">{{ $transfer->nama_bank ?? '-' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium uppercase text-ui-muted">No. Rekening</dt>
+                                    <dd class="mt-1">{{ $transfer->no_rekening ?? '-' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium uppercase text-ui-muted">Atas Nama</dt>
+                                    <dd class="mt-1">{{ $transfer->atas_nama_rekening ?? '-' }}</dd>
+                                </div>
+                            @endif
                         </dl>
                     @endif
                 @endif

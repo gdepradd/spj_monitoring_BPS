@@ -33,7 +33,7 @@
                     <form action="{{ route('bendahara.pengajuan.ajukan', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                         @csrf
                         <!-- Inisialisasi state Alpine.js di sini agar sinkron -->
-                        <div class="space-y-4" x-data="{ keputusan: '', metode: '' }">
+                        <div class="space-y-4" x-data="{ keputusan: '', metode: '', caraBayar: '' }">
                             
                             <!-- Pilih Keputusan -->
                             <div>
@@ -92,25 +92,63 @@
                             <template x-if="keputusan == '1' && metode == 'UP_TUP'">
                                 <div class="bg-green-50 p-4 rounded border border-green-200 mt-4 shadow-sm">
                                     <h4 class="font-bold text-sm text-gray-800 mb-3 border-b border-green-300 pb-1">Bukti Pembayaran Langsung</h4>
-                                    <p class="mb-3 text-xs text-gray-600">Metode UP/TUP selesai di tahap ini, sehingga data transfer dicatat sekarang.</p>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Tanggal Transfer</label>
-                                            <input type="date" name="tgl_transfer" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
-                                            <input type="text" name="nama_bank" placeholder="Contoh: BRI / BNI / Mandiri" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
-                                            <input type="text" name="no_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
-                                            <input type="text" name="atas_nama_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" required>
+                                    <p class="mb-3 text-xs text-gray-600">Metode UP/TUP selesai di tahap ini, sehingga bukti pembayarannya dicatat sekarang.</p>
+
+                                    <!-- Pilih cara bayar: transfer atau tunai -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Cara Pembayaran:</label>
+                                        <div class="flex flex-wrap gap-4">
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="cara_bayar" value="TRANSFER" x-model="caraBayar" :required="metode == 'UP_TUP'" class="text-green-600">
+                                                <span class="text-sm font-medium">Transfer</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="cara_bayar" value="TUNAI" x-model="caraBayar" :required="metode == 'UP_TUP'" class="text-green-600">
+                                                <span class="text-sm font-medium">Tunai</span>
+                                            </label>
                                         </div>
                                     </div>
+
+                                    <!-- Tanggal pembayaran: label menyesuaikan cara bayar -->
+                                    <div class="mb-4" x-show="caraBayar !== ''" style="display: none;">
+                                        <label class="block text-sm font-medium text-gray-700">
+                                            <span x-show="caraBayar === 'TUNAI'" style="display: none;">Tanggal Dibayarkan</span>
+                                            <span x-show="caraBayar !== 'TUNAI'">Tanggal Transfer</span>
+                                        </label>
+                                        <input type="date" name="tgl_transfer" :required="caraBayar !== ''"
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    </div>
+
+                                    <!-- Jalur TRANSFER -->
+                                    <template x-if="caraBayar === 'TRANSFER'">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
+                                                <input type="text" name="nama_bank" placeholder="Contoh: BRI / BNI / Mandiri" required
+                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
+                                                <input type="text" name="no_rekening" required
+                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                            </div>
+                                            <div class="md:col-span-2">
+                                                <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
+                                                <input type="text" name="atas_nama_rekening" required
+                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Jalur TUNAI -->
+                                    <template x-if="caraBayar === 'TUNAI'">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
+                                            <input type="text" name="no_kwitansi" placeholder="Nomor kwitansi pembayaran tunai" required
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                            <p class="mt-1 text-xs text-gray-600">Pembayaran tunai tidak memerlukan data rekening.</p>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
 
@@ -173,7 +211,7 @@
                                             <p class="font-medium text-base">{{ $dataPpk?->tanggal_proses ? \Carbon\Carbon::parse($dataPpk->tanggal_proses)->format('d/m/Y H:i') : '-' }}</p>
                                         </div>
                                         
-                                        <!-- Data SPM & SP2D -->
+                                        <!-- Data SPM dari PPSPM (SP2D diisi di form bawah) -->
                                         @if($dataPpspm)
                                             <div>
                                                 <p class="text-xs font-semibold text-blue-700 uppercase">No. SPM (PPSPM)</p>
@@ -183,38 +221,107 @@
                                                 <p class="text-xs font-semibold text-blue-700 uppercase">Tanggal SPM</p>
                                                 <p class="font-medium text-base">{{ $dataPpspm->tgl_spm ? \Carbon\Carbon::parse($dataPpspm->tgl_spm)->format('d/m/Y') : '-' }}</p>
                                             </div>
-                                            <div>
-                                                <p class="text-xs font-semibold text-blue-700 uppercase">No. SP2D</p>
-                                                <p class="font-medium text-base">{{ $dataPpspm->no_sp2d ?? '-' }}</p>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-semibold text-blue-700 uppercase">Tanggal SP2D</p>
-                                                <p class="font-medium text-base">{{ $dataPpspm->tgl_sp2d ? \Carbon\Carbon::parse($dataPpspm->tgl_sp2d)->format('d/m/Y') : '-' }}</p>
-                                            </div>
                                         @endif
                                     </div>
                                 </div>
                             @endif
 
-                            <!-- Selalu muncul -->
-                            <div>
-                                <label class="block font-medium text-sm text-gray-700">Tanggal Transfer/Konfirmasi</label>
-                                <input type="date" name="tgl_transfer" required class="w-full border-gray-300 rounded-md shadow-sm mt-1">
+                            <!-- SP2D terbit setelah SPM cair, jadi nomornya dicatat di tahap ini -->
+                            <div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 shadow-sm">
+                                <h4 class="font-bold text-sm text-gray-800 mb-3 border-b border-green-300 pb-1">Penerbitan SP2D</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="no_sp2d" class="block text-sm font-medium text-gray-700">Nomor SP2D</label>
+                                        <input type="text" id="no_sp2d" name="no_sp2d" value="{{ old('no_sp2d') }}" required
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                        @error('no_sp2d')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+                                    <div>
+                                        <label for="tgl_sp2d" class="block text-sm font-medium text-gray-700">Tanggal SP2D</label>
+                                        <input type="date" id="tgl_sp2d" name="tgl_sp2d" value="{{ old('tgl_sp2d') }}" required
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                        @error('tgl_sp2d')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mb-4 mt-4">
-    <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
-    <input type="text" name="nama_bank" placeholder="Contoh: BRI / BNI / Mandiri" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-</div>
 
-<div class="mb-4">
-    <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
-    <input type="text" name="no_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-</div>
+                            @if($pengajuan->metode_pembayaran === 'LS_PIHAK_KETIGA')
+                                {{-- Kemenkeu mentransfer langsung ke pihak ketiga, sehingga Bendahara
+                                     hanya mencatat kapan dananya cair. Tidak ada pilihan cara bayar
+                                     maupun data rekening di jalur ini. --}}
+                                <div class="mb-4">
+                                    <label for="tgl_transfer" class="block font-medium text-sm text-gray-700">Tanggal Cair dari Kemenkeu</label>
+                                    <input type="date" id="tgl_transfer" name="tgl_transfer" value="{{ old('tgl_transfer') }}" required
+                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    @error('tgl_transfer')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    <p class="mt-1 text-xs text-gray-600">
+                                        Dana ditransfer langsung oleh Kemenkeu ke pihak ketiga, jadi data rekening tidak diisi di sini.
+                                    </p>
+                                </div>
+                            @else
+                                {{-- LS Bendahara: dana masuk ke Bendahara lalu diteruskan ke penerima,
+                                     bisa lewat transfer maupun tunai. --}}
+                                <div x-data="{ caraBayar: '{{ old('cara_bayar', '') }}' }">
 
-<div class="mb-4">
-    <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
-    <input type="text" name="atas_nama_rekening" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-</div>
+                                    <div class="mb-4">
+                                        <label class="block font-medium text-sm text-gray-700 mb-2">Cara Pembayaran ke Penerima:</label>
+                                        <div class="flex flex-wrap gap-4">
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="cara_bayar" value="TRANSFER" x-model="caraBayar" required class="text-blue-600">
+                                                <span class="text-sm font-medium">Transfer</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="cara_bayar" value="TUNAI" x-model="caraBayar" required class="text-blue-600">
+                                                <span class="text-sm font-medium">Tunai</span>
+                                            </label>
+                                        </div>
+                                        @error('cara_bayar')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+
+                                    <!-- Tanggal pembayaran: label menyesuaikan cara bayar -->
+                                    <div class="mb-4" x-show="caraBayar !== ''" style="display: none;">
+                                        <label for="tgl_transfer" class="block font-medium text-sm text-gray-700">
+                                            <span x-show="caraBayar === 'TUNAI'" style="display: none;">Tanggal Pencairan</span>
+                                            <span x-show="caraBayar !== 'TUNAI'">Tanggal Transfer</span>
+                                        </label>
+                                        <input type="date" id="tgl_transfer" name="tgl_transfer" value="{{ old('tgl_transfer') }}" :required="caraBayar !== ''"
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        @error('tgl_transfer')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+
+                                    <!-- Jalur TRANSFER -->
+                                    <template x-if="caraBayar === 'TRANSFER'">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
+                                                <input type="text" name="nama_bank" value="{{ old('nama_bank') }}" placeholder="Contoh: BRI / BNI / Mandiri" required
+                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
+                                                <input type="text" name="no_rekening" value="{{ old('no_rekening') }}" required
+                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            </div>
+                                            <div class="md:col-span-2">
+                                                <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
+                                                <input type="text" name="atas_nama_rekening" value="{{ old('atas_nama_rekening') }}" required
+                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Jalur TUNAI -->
+                                    <template x-if="caraBayar === 'TUNAI'">
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
+                                            <input type="text" name="no_kwitansi" value="{{ old('no_kwitansi') }}" placeholder="Nomor kwitansi pembayaran tunai" required
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            <p class="mt-1 text-xs text-gray-600">Pembayaran tunai tidak memerlukan data rekening.</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            @endif
+
                             <div>
                                 <label class="block font-medium text-sm text-gray-700">Catatan <span class="text-gray-400">(Opsional)</span></label>
                                 <textarea name="catatan" rows="3" class="w-full border-gray-300 rounded-md shadow-sm mt-1"></textarea>

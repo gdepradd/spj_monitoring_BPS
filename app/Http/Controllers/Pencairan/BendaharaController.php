@@ -89,19 +89,25 @@ class BendaharaController extends Controller
             // Dokumen SPP wajib pada metode LS agar bisa dibaca PPK, PPSPM, dan saat konfirmasi.
             'no_spp' => 'required_if:metode_pembayaran,LS_BENDAHARA,LS_PIHAK_KETIGA',
             'tgl_spp' => 'required_if:metode_pembayaran,LS_BENDAHARA,LS_PIHAK_KETIGA|nullable|date',
-            // UP/TUP selesai di tangan Bendahara, jadi bukti transfernya dicatat di sini.
+            // UP/TUP selesai di tangan Bendahara: bisa lewat transfer atau tunai.
+            'cara_bayar' => 'required_if:metode_pembayaran,UP_TUP|nullable|in:TRANSFER,TUNAI',
             'tgl_transfer' => 'required_if:metode_pembayaran,UP_TUP|nullable|date',
-            'nama_bank' => 'required_if:metode_pembayaran,UP_TUP|nullable|string|max:100',
-            'no_rekening' => 'required_if:metode_pembayaran,UP_TUP|nullable|string|max:50',
-            'atas_nama_rekening' => 'required_if:metode_pembayaran,UP_TUP|nullable|string|max:150',
+            // Jalur transfer: data rekening tujuan.
+            'nama_bank' => 'required_if:cara_bayar,TRANSFER|nullable|string|max:100',
+            'no_rekening' => 'required_if:cara_bayar,TRANSFER|nullable|string|max:50',
+            'atas_nama_rekening' => 'required_if:cara_bayar,TRANSFER|nullable|string|max:150',
+            // Jalur tunai: nomor kwitansi sebagai bukti pembayaran.
+            'no_kwitansi' => 'required_if:cara_bayar,TUNAI|nullable|string|max:100',
             'catatan' => 'required_if:id_status_pencairan,2,3' // Wajib jika ditolak/revisi
         ], [
             'no_spp.required_if' => 'Nomor SPP wajib diisi untuk metode pembayaran LS.',
             'tgl_spp.required_if' => 'Tanggal SPP wajib diisi untuk metode pembayaran LS.',
-            'tgl_transfer.required_if' => 'Tanggal transfer wajib diisi untuk metode UP/TUP.',
-            'nama_bank.required_if' => 'Nama bank wajib diisi untuk metode UP/TUP.',
-            'no_rekening.required_if' => 'Nomor rekening wajib diisi untuk metode UP/TUP.',
-            'atas_nama_rekening.required_if' => 'Atas nama rekening wajib diisi untuk metode UP/TUP.',
+            'cara_bayar.required_if' => 'Pilih cara pembayaran (transfer atau tunai) untuk metode UP/TUP.',
+            'tgl_transfer.required_if' => 'Tanggal pembayaran wajib diisi untuk metode UP/TUP.',
+            'nama_bank.required_if' => 'Nama bank wajib diisi untuk pembayaran transfer.',
+            'no_rekening.required_if' => 'Nomor rekening wajib diisi untuk pembayaran transfer.',
+            'atas_nama_rekening.required_if' => 'Atas nama rekening wajib diisi untuk pembayaran transfer.',
+            'no_kwitansi.required_if' => 'Nomor kwitansi wajib diisi untuk pembayaran tunai.',
         ]);
 
         // Jika REVISI (2) atau TOLAK (3)
@@ -133,29 +139,51 @@ class BendaharaController extends Controller
                 ->with('error', 'Pengajuan ini tidak berada pada tahap konfirmasi pencairan.');
         }
 
+        // Berlaku untuk kedua jalur LS: SP2D terbit setelah SPM cair.
         $rules = [
+            'no_sp2d' => 'required|string|max:100',
+            'tgl_sp2d' => 'required|date',
             'tgl_transfer' => 'required|date',
-            'nama_bank' => 'required|string|max:100',
-            'no_rekening' => 'required|string|max:50',
-            'atas_nama_rekening' => 'required|string|max:150',
             'catatan' => 'nullable|string',
         ];
 
-        // Pada metode LS, nomor SPM/SP2D sudah diterbitkan PPSPM sehingga tidak diinput ulang.
+        $pesan = [
+            'no_sp2d.required' => 'Nomor SP2D wajib diisi.',
+            'tgl_sp2d.required' => 'Tanggal SP2D wajib diisi.',
+            'tgl_transfer.required' => 'Tanggal pencairan wajib diisi.',
+        ];
+
+        if ($pengajuan->metode_pembayaran === 'LS_PIHAK_KETIGA') {
+            // Kemenkeu mentransfer langsung ke pihak ketiga: Bendahara hanya
+            // mencatat SP2D dan tanggal cair, tanpa cara bayar dan rekening.
+            $pesan['tgl_transfer.required'] = 'Tanggal cair dari Kemenkeu wajib diisi.';
+        } else {
+            // LS Bendahara: dana diteruskan Bendahara, bisa transfer atau tunai.
+            $rules['cara_bayar'] = 'required|in:TRANSFER,TUNAI';
+            $rules['nama_bank'] = 'required_if:cara_bayar,TRANSFER|nullable|string|max:100';
+            $rules['no_rekening'] = 'required_if:cara_bayar,TRANSFER|nullable|string|max:50';
+            $rules['atas_nama_rekening'] = 'required_if:cara_bayar,TRANSFER|nullable|string|max:150';
+            $rules['no_kwitansi'] = 'required_if:cara_bayar,TUNAI|nullable|string|max:100';
+
+            $pesan += [
+                'cara_bayar.required' => 'Pilih cara pembayaran ke penerima (transfer atau tunai).',
+                'nama_bank.required_if' => 'Nama bank wajib diisi untuk pembayaran transfer.',
+                'no_rekening.required_if' => 'Nomor rekening wajib diisi untuk pembayaran transfer.',
+                'atas_nama_rekening.required_if' => 'Atas nama rekening wajib diisi untuk pembayaran transfer.',
+                'no_kwitansi.required_if' => 'Nomor kwitansi wajib diisi untuk pembayaran tunai.',
+            ];
+        }
+
+        // Pada metode LS, nomor SPM harus sudah diterbitkan PPSPM lebih dulu.
         if (in_array($pengajuan->metode_pembayaran, ['LS_BENDAHARA', 'LS_PIHAK_KETIGA'], true)) {
             $ppspm = $pengajuan->ppspm()->orderByDesc('id_ppspm')->first();
 
-            if (! $ppspm || ! $ppspm->no_spm || ! $ppspm->no_sp2d) {
-                return back()->with('error', 'Dokumen SPM/SP2D dari PPSPM belum lengkap. Konfirmasi pencairan belum dapat dilakukan.');
+            if (! $ppspm || ! $ppspm->no_spm) {
+                return back()->with('error', 'Nomor SPM dari PPSPM belum tersedia. Konfirmasi pencairan belum dapat dilakukan.');
             }
         }
 
-        $request->validate($rules, [
-            'tgl_transfer.required' => 'Tanggal transfer wajib diisi.',
-            'nama_bank.required' => 'Nama bank wajib diisi.',
-            'no_rekening.required' => 'Nomor rekening wajib diisi.',
-            'atas_nama_rekening.required' => 'Atas nama rekening wajib diisi.',
-        ]);
+        $request->validate($rules, $pesan);
 
         $this->pencairanService->bendaharaKonfirmasi($pengajuan, $request->all());
 
