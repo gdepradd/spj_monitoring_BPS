@@ -87,6 +87,21 @@
                         <dd class="mt-1 font-semibold text-purple-700">{{ $pengajuan->metode_label }}</dd>
                     </div>
                     <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">Jenis Pencairan</dt>
+                        <dd class="mt-1">{{ $pengajuan->jenis_pencairan_label }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">Sudah Dibayarkan</dt>
+                        <dd class="mt-1 font-semibold">
+                            Rp {{ number_format($pengajuan->total_dibayar, 0, ',', '.') }}
+                            <span class="text-xs font-normal text-ui-muted">({{ $pengajuan->persen_dibayar }}%)</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">Sisa Pembayaran</dt>
+                        <dd class="mt-1 font-semibold">Rp {{ number_format($pengajuan->sisa_pembayaran, 0, ',', '.') }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-xs font-medium uppercase text-ui-muted">Alur Pencairan</dt>
                         <dd class="mt-1 text-sm">
                             @if($pengajuan->metode_pembayaran === 'UP_TUP')

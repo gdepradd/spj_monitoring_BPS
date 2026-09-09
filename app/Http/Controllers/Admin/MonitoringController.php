@@ -35,6 +35,7 @@ class MonitoringController extends Controller
         'PROSES_PPK' => 'Di PPK',
         'PROSES_PPSPM' => 'Di PPSPM',
         'PROSES_KONFIRMASI_BENDAHARA' => 'Di Bendahara (konfirmasi)',
+        'PENCAIRAN_PARSIAL' => 'Pencairan bertahap berjalan',
         'REVISI' => 'Dikembalikan ke Pegawai',
     ];
 
@@ -333,7 +334,9 @@ class MonitoringController extends Controller
                 NULL as no_rekening,
                 NULL as atas_nama_rekening,
                 NULL as cara_bayar,
-                NULL as no_kwitansi
+                NULL as no_kwitansi,
+                NULL as nominal,
+                NULL as nama_penerima
             ");
     }
 
@@ -374,7 +377,9 @@ class MonitoringController extends Controller
                 " . $kolom('no_rekening') . ",
                 " . $kolom('atas_nama_rekening') . ",
                 " . $kolom('cara_bayar') . ",
-                " . $kolom('no_kwitansi') . "
+                " . $kolom('no_kwitansi') . ",
+                " . $kolom('nominal') . ",
+                " . $kolom('nama_penerima') . "
             ");
     }
 
@@ -447,6 +452,8 @@ class MonitoringController extends Controller
 
             $dokumen = match ($row->sumber) {
                 'Bendahara' => [
+                    'Nominal' => $row->nominal !== null ? 'Rp ' . number_format((float) $row->nominal, 0, ',', '.') : null,
+                    'Penerima' => $row->nama_penerima,
                     'No. SPP' => $row->no_spp,
                     'Tgl. SPP' => $this->tanggal($row->tgl_spp),
                     'No. SPM' => $row->no_spm,

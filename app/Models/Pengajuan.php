@@ -27,6 +27,8 @@ class Pengajuan extends Model
         'bulan_kegiatan',
         'tim_pengaju',
         'nama_penerima',
+        // PENUH atau PARSIAL, ditentukan Bendahara saat mulai mencairkan.
+        'jenis_pencairan',
     ];
 
     protected $casts = [
@@ -69,6 +71,92 @@ class Pengajuan extends Model
         return $this->hasMany(Ppspm::class, 'id_pengajuan', 'id_pengajuan');    
     }
     
+    /**
+     * Catatan pembayaran ke penerima (UP/TUP maupun konfirmasi LS).
+     * Satu pengajuan bisa punya banyak baris bila dicairkan bertahap.
+     */
+    public function pembayaran()
+    {
+        return $this->hasMany(Bendahara::class, 'id_pengajuan', 'id_pengajuan')
+            ->whereIn('tahap', ['PEMBAYARAN_LANGSUNG', 'KONFIRMASI']);
+    }
+
+    /**
+     * Total nominal yang sudah dibayarkan ke penerima.
+     * Memakai relasi yang sudah dimuat bila tersedia agar tidak menambah query.
+     */
+    public function getTotalDibayarAttribute(): float
+    {
+        if ($this->relationLoaded('bendahara')) {
+            return (float) $this->bendahara
+                ->whereIn('tahap', ['PEMBAYARAN_LANGSUNG', 'KONFIRMASI'])
+                ->sum('nominal');
+        }
+
+        return (float) $this->pembayaran()->sum('nominal');
+    }
+
+    public function getSisaPembayaranAttribute(): float
+    {
+        return max(0, (float) $this->total_nominal - $this->total_dibayar);
+    }
+
+    /**
+     * Nomor kwitansi yang berlaku untuk pengajuan ini.
+     *
+     * Satu pengajuan memakai satu nomor kwitansi, jadi nomor yang dicatat pada
+     * pembayaran tunai pertama dipakai kembali oleh termin-termin berikutnya.
+     */
+    public function getNoKwitansiAttribute(): ?string
+    {
+        if ($this->relationLoaded('bendahara')) {
+            return $this->bendahara
+                ->whereIn('tahap', ['PEMBAYARAN_LANGSUNG', 'KONFIRMASI'])
+                ->whereNotNull('no_kwitansi')
+                ->sortBy('id_bendahara')
+                ->first()?->no_kwitansi;
+        }
+
+        return $this->pembayaran()
+            ->whereNotNull('no_kwitansi')
+            ->orderBy('id_bendahara')
+            ->value('no_kwitansi');
+    }
+
+    /**
+     * Tanggal pengajuan benar-benar selesai, yaitu saat pembayaran terakhir dicatat.
+     * Bernilai null selama pengajuan belum berstatus SELESAI.
+     */
+    public function getTanggalSelesaiAttribute()
+    {
+        if ($this->status?->kode_status !== 'SELESAI') {
+            return null;
+        }
+
+        $terakhir = $this->relationLoaded('bendahara')
+            ? $this->bendahara
+                ->whereIn('tahap', ['PEMBAYARAN_LANGSUNG', 'KONFIRMASI'])
+                ->sortBy('id_bendahara')
+                ->last()
+            : $this->pembayaran()->orderByDesc('id_bendahara')->first();
+
+        return $terakhir?->tgl_transfer
+            ?? $terakhir?->tanggal_proses
+            ?? $this->updated_at;
+    }
+
+    public function getPersenDibayarAttribute(): float
+    {
+        $total = (float) $this->total_nominal;
+
+        return $total > 0 ? min(100, round($this->total_dibayar / $total * 100, 1)) : 0;
+    }
+
+    public function isLunas(): bool
+    {
+        return $this->sisa_pembayaran <= 0;
+    }
+
     public function isTahapAktif(string $kodeStatus): bool
     {
         return $this->status?->kode_status === $kodeStatus;
@@ -84,6 +172,15 @@ class Pengajuan extends Model
             'LS_PIHAK_KETIGA' => 'LS Pihak Ketiga',
             'UP_TUP' => 'UP / TUP',
             default => 'Belum Ditentukan',
+        };
+    }
+
+    public function getJenisPencairanLabelAttribute(): string
+    {
+        return match ($this->jenis_pencairan) {
+            'PENUH' => 'Penuh',
+            'PARSIAL' => 'Parsial (bertahap)',
+            default => '-',
         };
     }
 
@@ -106,6 +203,62 @@ class Pengajuan extends Model
         return $model?->user->nama_lengkap
             ?? $model?->user->name
             ?? $default;
+    }
+
+    /**
+     * Satu entri timeline untuk sebuah pembayaran ke penerima.
+     * Judul diberi nomor termin bila pencairannya bertahap.
+     */
+    protected function entriPembayaran($log, string $judul, int $termin, int $jumlahTermin, array $dokumenAwal = []): array
+    {
+        $tunai = $log->cara_bayar === 'TUNAI';
+
+        $label = $jumlahTermin > 1 ? $judul . ' — Termin ' . $termin : $judul;
+
+        $dokumen = $dokumenAwal + [
+            'No. SP2D' => $log->no_sp2d,
+            'Tgl. SP2D' => $log->tgl_sp2d,
+            'Nominal' => $log->nominal !== null
+                ? 'Rp ' . number_format((float) $log->nominal, 0, ',', '.')
+                : null,
+            'Penerima' => $log->nama_penerima ?? $log->atas_nama_rekening,
+            'Cara Bayar' => $tunai ? 'Tunai' : 'Transfer',
+            ($tunai ? 'Tgl. Pencairan' : 'Tgl. Transfer') => $log->tgl_transfer,
+            'No. Kwitansi' => $log->no_kwitansi,
+            // Kolom lama hanya tampil bila datanya memang ada.
+            'Nama Bank' => $log->nama_bank,
+            'No. Rekening' => $log->no_rekening,
+        ];
+
+        return [
+            'judul'   => $label,
+            'aktor'   => $this->namaAktor($log, 'Bendahara'),
+            'waktu'   => $log->tgl_transfer ?? $log->tanggal_proses ?? $log->created_at,
+            'catatan' => $log->catatan,
+            'status'  => 'Selesai',
+            'dokumen' => array_filter($dokumen),
+        ];
+    }
+
+    /**
+     * Entri penutup yang menegaskan apakah pembayaran sudah lunas atau masih bersisa.
+     */
+    protected function entriSisaPembayaran(): array
+    {
+        $sisa = $this->sisa_pembayaran;
+
+        return [
+            'judul'   => $sisa > 0 ? 'Menunggu Pembayaran Berikutnya' : 'Pembayaran Lunas',
+            'aktor'   => 'Bendahara',
+            'waktu'   => $sisa > 0 ? null : null,
+            'catatan' => null,
+            'status'  => $sisa > 0 ? 'Sedang Diproses' : 'Selesai',
+            'dokumen' => array_filter([
+                'Total Pengajuan' => 'Rp ' . number_format((float) $this->total_nominal, 0, ',', '.'),
+                'Sudah Dibayar'   => 'Rp ' . number_format($this->total_dibayar, 0, ',', '.'),
+                'Sisa'            => $sisa > 0 ? 'Rp ' . number_format($sisa, 0, ',', '.') : null,
+            ]),
+        ];
     }
 
     /**
@@ -207,25 +360,34 @@ class Pengajuan extends Model
             return $timeline;
         }
 
-        // Jalur UP / TUP
+        // Jalur UP / TUP — tiap termin pembayaran menjadi satu entri tersendiri.
         if ($this->metode_pembayaran === 'UP_TUP') {
-            $logBayar = $bendaharaLogs->where('tahap', 'PEMBAYARAN_LANGSUNG')->sortByDesc('id_bendahara')->first();
-            $timeline->push([
-                'judul'   => 'Pembayaran Langsung (UP/TUP)',
-                'aktor'   => $this->namaAktor($logBayar, 'Bendahara'),
-                'waktu'   => $logBayar ? ($logBayar->tgl_transfer ?? $logBayar->tanggal_proses ?? $logBayar->created_at) : null,
-                'catatan' => $logBayar?->catatan,
-                'status'  => $logBayar ? 'Selesai' : 'Sedang Diproses',
-                'dokumen' => array_filter([
-                    'Metode'         => $this->metode_label,
-                    'Cara Bayar'     => $logBayar?->cara_bayar === 'TUNAI' ? 'Tunai' : ($logBayar?->cara_bayar ? 'Transfer' : null),
-                    'Tgl. Dibayar'   => $logBayar?->tgl_transfer,
-                    'No. Kwitansi'   => $logBayar?->no_kwitansi,
-                    'Nama Bank'      => $logBayar?->nama_bank,
-                    'No. Rekening'   => $logBayar?->no_rekening,
-                    'Atas Nama'      => $logBayar?->atas_nama_rekening,
-                ]),
-            ]);
+            $daftarBayar = $bendaharaLogs->where('tahap', 'PEMBAYARAN_LANGSUNG')->sortBy('id_bendahara');
+
+            if ($daftarBayar->isEmpty()) {
+                $timeline->push([
+                    'judul'   => 'Pembayaran Langsung (UP/TUP)',
+                    'aktor'   => 'Bendahara',
+                    'waktu'   => null,
+                    'catatan' => null,
+                    'status'  => 'Sedang Diproses',
+                    'dokumen' => array_filter(['Metode' => $this->metode_label]),
+                ]);
+
+                return $timeline;
+            }
+
+            foreach ($daftarBayar->values() as $urutan => $log) {
+                $timeline->push($this->entriPembayaran(
+                    $log,
+                    'Pembayaran Langsung (UP/TUP)',
+                    $urutan + 1,
+                    $daftarBayar->count()
+                ));
+            }
+
+            $timeline->push($this->entriSisaPembayaran());
+
             return $timeline;
         }
 
@@ -272,28 +434,32 @@ class Pengajuan extends Model
             ]),
         ]);
 
-        $logKonfirmasi = $bendaharaLogs->where('tahap', 'KONFIRMASI')->sortByDesc('id_bendahara')->first();
-        $timeline->push([
-            'judul'   => 'Konfirmasi Pencairan',
-            'aktor'   => $this->namaAktor($logKonfirmasi, 'Bendahara'),
-            'waktu'   => $logKonfirmasi ? ($logKonfirmasi->tgl_transfer ?? $logKonfirmasi->tanggal_proses ?? $logKonfirmasi->created_at) : null,
-            'catatan' => $logKonfirmasi?->catatan,
-            'status'  => $logKonfirmasi ? 'Selesai' : ($logPpspm ? 'Sedang Diproses' : 'Belum Dimulai'),
-            'dokumen' => array_filter([
-                'No. SPM'       => $logKonfirmasi?->no_spm ?? $logPpspm?->no_spm,
-                // SP2D diterbitkan pada tahap konfirmasi, bukan oleh PPSPM.
-                'No. SP2D'      => $logKonfirmasi?->no_sp2d,
-                'Tgl. SP2D'     => $logKonfirmasi?->tgl_sp2d,
-                'Cara Bayar'    => $this->metode_pembayaran === 'LS_PIHAK_KETIGA'
-                    ? 'Transfer Kemenkeu'
-                    : ($logKonfirmasi?->cara_bayar === 'TUNAI' ? 'Tunai' : ($logKonfirmasi?->cara_bayar ? 'Transfer' : null)),
-                ($logKonfirmasi?->cara_bayar === 'TUNAI' ? 'Tgl. Pencairan' : 'Tgl. Transfer') => $logKonfirmasi?->tgl_transfer,
-                'No. Kwitansi'  => $logKonfirmasi?->no_kwitansi,
-                'Nama Bank'     => $logKonfirmasi?->nama_bank,
-                'No. Rekening'  => $logKonfirmasi?->no_rekening,
-                'Atas Nama'     => $logKonfirmasi?->atas_nama_rekening,
-            ]),
-        ]);
+        $daftarKonfirmasi = $bendaharaLogs->where('tahap', 'KONFIRMASI')->sortBy('id_bendahara');
+
+        if ($daftarKonfirmasi->isEmpty()) {
+            $timeline->push([
+                'judul'   => 'Konfirmasi Pencairan',
+                'aktor'   => 'Bendahara',
+                'waktu'   => null,
+                'catatan' => null,
+                'status'  => $logPpspm ? 'Sedang Diproses' : 'Belum Dimulai',
+                'dokumen' => array_filter(['No. SPM' => $logPpspm?->no_spm]),
+            ]);
+
+            return $timeline;
+        }
+
+        foreach ($daftarKonfirmasi->values() as $urutan => $log) {
+            $timeline->push($this->entriPembayaran(
+                $log,
+                'Konfirmasi Pencairan',
+                $urutan + 1,
+                $daftarKonfirmasi->count(),
+                ['No. SPM' => $log->no_spm ?? $logPpspm?->no_spm]
+            ));
+        }
+
+        $timeline->push($this->entriSisaPembayaran());
 
         return $timeline;
     }

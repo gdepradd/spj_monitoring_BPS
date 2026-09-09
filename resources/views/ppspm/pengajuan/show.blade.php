@@ -122,9 +122,6 @@
                                     </div>
                                 </div>
 
-                                <p class="mb-4 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                                    Nomor SP2D tidak diisi di sini. SP2D dicatat Bendahara pada tahap konfirmasi pencairan.
-                                </p>
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700">Catatan (Opsional)</label>
                                     <textarea name="catatan" rows="3" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>

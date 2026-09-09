@@ -9,7 +9,15 @@
             <div class="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-ui-border bg-ui-card p-4">
                 <a href="{{ route('pegawai.pengajuan.show', $item) }}" class="min-w-0 flex-1">
                     <p class="font-semibold">{{ $item->no_pengajuan }} — {{ $item->perihal }}</p>
-                    <p class="mt-1 text-sm text-ui-muted">{{ $item->tanggal_pengajuan->format('d M Y') }} · Rp {{ number_format((float) $item->total_nominal, 2, ',', '.') }}</p>
+                    <p class="mt-1 text-sm text-ui-muted">
+                        Diajukan {{ $item->tanggal_pengajuan->format('d M Y') }} ·
+                        Rp {{ number_format((float) $item->total_nominal, 2, ',', '.') }}
+                    </p>
+                    @if($item->tanggal_selesai)
+                        <p class="mt-0.5 text-sm font-medium text-status-done">
+                            Selesai {{ \Carbon\Carbon::parse($item->tanggal_selesai)->format('d M Y') }}
+                        </p>
+                    @endif
                 </a>
 
                 <div class="flex items-center gap-3">

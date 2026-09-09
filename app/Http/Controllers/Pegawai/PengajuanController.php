@@ -24,7 +24,8 @@ class PengajuanController extends Controller
     public function index(): View
     {
         $query = Pengajuan::query()
-            ->with('status')
+            // bendahara ikut dimuat agar tanggal selesai tidak memicu query per baris.
+            ->with(['status', 'bendahara'])
             ->where('id_user', Auth::id())
             ->latest('created_at');
 
@@ -252,7 +253,7 @@ class PengajuanController extends Controller
     public function riwayat(): View
     {
         $pengajuan = Pengajuan::query()
-            ->with('status')
+            ->with(['status', 'bendahara'])
             ->where('id_user', Auth::id())
             ->latest('created_at')
             ->paginate(15);

@@ -33,7 +33,7 @@
                     <form action="{{ route('bendahara.pengajuan.ajukan', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                         @csrf
                         <!-- Inisialisasi state Alpine.js di sini agar sinkron -->
-                        <div class="space-y-4" x-data="{ keputusan: '', metode: '', caraBayar: '' }">
+                        <div class="space-y-4" x-data="{ keputusan: '', metode: '', caraBayar: '', jenisPencairan: '' }">
                             
                             <!-- Pilih Keputusan -->
                             <div>
@@ -92,9 +92,27 @@
                             <template x-if="keputusan == '1' && metode == 'UP_TUP'">
                                 <div class="bg-green-50 p-4 rounded border border-green-200 mt-4 shadow-sm">
                                     <h4 class="font-bold text-sm text-gray-800 mb-3 border-b border-green-300 pb-1">Bukti Pembayaran Langsung</h4>
-                                    <p class="mb-3 text-xs text-gray-600">Metode UP/TUP selesai di tahap ini, sehingga bukti pembayarannya dicatat sekarang.</p>
+                                    <p class="mb-3 text-xs text-gray-600">
+                                        Metode UP/TUP selesai di tahap ini. Total pengajuan
+                                        <strong>Rp {{ number_format((float) $pengajuan->total_nominal, 0, ',', '.') }}</strong>.
+                                    </p>
 
-                                    <!-- Pilih cara bayar: transfer atau tunai -->
+                                    <!-- Penuh atau parsial -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Pencairan:</label>
+                                        <div class="flex flex-wrap gap-4">
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="jenis_pencairan" value="PENUH" x-model="jenisPencairan" :required="metode == 'UP_TUP'" class="text-green-600">
+                                                <span class="text-sm font-medium">Penuh (satu penerima)</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="jenis_pencairan" value="PARSIAL" x-model="jenisPencairan" :required="metode == 'UP_TUP'" class="text-green-600">
+                                                <span class="text-sm font-medium">Parsial (bisa beberapa penerima)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Cara bayar berlaku untuk seluruh penerima pada pembayaran ini -->
                                     <div class="mb-4">
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Cara Pembayaran:</label>
                                         <div class="flex flex-wrap gap-4">
@@ -109,45 +127,42 @@
                                         </div>
                                     </div>
 
-                                    <!-- Tanggal pembayaran: label menyesuaikan cara bayar -->
-                                    <div class="mb-4" x-show="caraBayar !== ''" style="display: none;">
-                                        <label class="block text-sm font-medium text-gray-700">
-                                            <span x-show="caraBayar === 'TUNAI'" style="display: none;">Tanggal Dibayarkan</span>
-                                            <span x-show="caraBayar !== 'TUNAI'">Tanggal Transfer</span>
-                                        </label>
-                                        <input type="date" name="tgl_transfer" :required="caraBayar !== ''"
+                                    <!-- Tanggal berlaku untuk kedua jenis pencairan -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700">Tanggal Pembayaran</label>
+                                        <input type="date" name="tgl_transfer" value="{{ old('tgl_transfer') }}"
+                                               :required="metode == 'UP_TUP'"
                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
                                     </div>
 
-                                    <!-- Jalur TRANSFER -->
-                                    <template x-if="caraBayar === 'TRANSFER'">
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
-                                                <input type="text" name="nama_bank" placeholder="Contoh: BRI / BNI / Mandiri" required
-                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                                            </div>
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
-                                                <input type="text" name="no_rekening" required
-                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                                            </div>
-                                            <div class="md:col-span-2">
-                                                <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
-                                                <input type="text" name="atas_nama_rekening" required
-                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                                            </div>
+                                    <!-- Satu nomor kwitansi untuk seluruh pembayaran ini -->
+                                    <div class="mb-4" x-show="caraBayar === 'TUNAI'" style="display: none;">
+                                        <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
+                                        <input type="text" name="no_kwitansi" value="{{ old('no_kwitansi') }}"
+                                               placeholder="Berlaku untuk seluruh pembayaran pengajuan ini"
+                                               :required="caraBayar === 'TUNAI'"
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    </div>
+
+                                    <!-- PENUH: satu penerima -->
+                                    <template x-if="jenisPencairan === 'PENUH'">
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700">Nama Penerima</label>
+                                            <input type="text" name="nama_penerima"
+                                                   value="{{ old('nama_penerima', $pengajuan->nama_penerima) }}"
+                                                   :required="jenisPencairan === 'PENUH'"
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
                                         </div>
                                     </template>
 
-                                    <!-- Jalur TUNAI -->
-                                    <template x-if="caraBayar === 'TUNAI'">
+                                    <!-- PARSIAL: boleh dibagi ke beberapa penerima sekaligus -->
+                                    <template x-if="jenisPencairan === 'PARSIAL'">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
-                                            <input type="text" name="no_kwitansi" placeholder="Nomor kwitansi pembayaran tunai" required
-                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                                            <p class="mt-1 text-xs text-gray-600">Pembayaran tunai tidak memerlukan data rekening.</p>
-                                        </div>
+                                        <x-penerima-repeater :batas="(float) $pengajuan->total_nominal" warna="green" />
+                                        <p class="mt-2 text-xs text-gray-600">
+                                            Sisa yang belum dibayar tetap tampil di dashboard untuk dilunasi menyusul.
+                                        </p>
+                                    </div>
                                     </template>
                                 </div>
                             </template>
@@ -245,24 +260,33 @@
                                 </div>
                             </div>
 
-                            @if($pengajuan->metode_pembayaran === 'LS_PIHAK_KETIGA')
-                                {{-- Kemenkeu mentransfer langsung ke pihak ketiga, sehingga Bendahara
-                                     hanya mencatat kapan dananya cair. Tidak ada pilihan cara bayar
-                                     maupun data rekening di jalur ini. --}}
-                                <div class="mb-4">
-                                    <label for="tgl_transfer" class="block font-medium text-sm text-gray-700">Tanggal Cair dari Kemenkeu</label>
-                                    <input type="date" id="tgl_transfer" name="tgl_transfer" value="{{ old('tgl_transfer') }}" required
-                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                    @error('tgl_transfer')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                                    <p class="mt-1 text-xs text-gray-600">
-                                        Dana ditransfer langsung oleh Kemenkeu ke pihak ketiga, jadi data rekening tidak diisi di sini.
-                                    </p>
-                                </div>
-                            @else
+                            {{-- Bendahara meneruskan dana ke penerima pada kedua jalur LS,
+                                 baik LS Bendahara maupun LS Pihak Ketiga. Karena itu cara bayar
+                                 (transfer/tunai) dan pencairan penuh/parsial tersedia di keduanya,
+                                 sama seperti UP/TUP. --}}
                                 {{-- LS Bendahara: dana masuk ke Bendahara lalu diteruskan ke penerima,
-                                     bisa lewat transfer maupun tunai. --}}
-                                <div x-data="{ caraBayar: '{{ old('cara_bayar', '') }}' }">
+                                     bisa lewat transfer maupun tunai, penuh atau bertahap. --}}
+                                <div x-data="{
+                                        caraBayar: '{{ old('cara_bayar', '') }}',
+                                        jenisPencairan: '{{ old('jenis_pencairan', '') }}',
+                                     }">
 
+                                    <div class="mb-4">
+                                        <label class="block font-medium text-sm text-gray-700 mb-2">Pencairan:</label>
+                                        <div class="flex flex-wrap gap-4">
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="jenis_pencairan" value="PENUH" x-model="jenisPencairan" required class="text-blue-600">
+                                                <span class="text-sm font-medium">Penuh (satu penerima)</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="radio" name="jenis_pencairan" value="PARSIAL" x-model="jenisPencairan" required class="text-blue-600">
+                                                <span class="text-sm font-medium">Parsial (bisa beberapa penerima)</span>
+                                            </label>
+                                        </div>
+                                        @error('jenis_pencairan')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+
+                                    <!-- Cara bayar berlaku untuk seluruh penerima pada pembayaran ini -->
                                     <div class="mb-4">
                                         <label class="block font-medium text-sm text-gray-700 mb-2">Cara Pembayaran ke Penerima:</label>
                                         <div class="flex flex-wrap gap-4">
@@ -278,49 +302,46 @@
                                         @error('cara_bayar')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                                     </div>
 
-                                    <!-- Tanggal pembayaran: label menyesuaikan cara bayar -->
-                                    <div class="mb-4" x-show="caraBayar !== ''" style="display: none;">
-                                        <label for="tgl_transfer" class="block font-medium text-sm text-gray-700">
-                                            <span x-show="caraBayar === 'TUNAI'" style="display: none;">Tanggal Pencairan</span>
-                                            <span x-show="caraBayar !== 'TUNAI'">Tanggal Transfer</span>
-                                        </label>
-                                        <input type="date" id="tgl_transfer" name="tgl_transfer" value="{{ old('tgl_transfer') }}" :required="caraBayar !== ''"
+                                    <div class="mb-4">
+                                        <label for="tgl_transfer" class="block text-sm font-medium text-gray-700">Tanggal Pembayaran</label>
+                                        <input type="date" id="tgl_transfer" name="tgl_transfer" value="{{ old('tgl_transfer') }}" required
                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                         @error('tgl_transfer')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                                     </div>
 
-                                    <!-- Jalur TRANSFER -->
-                                    <template x-if="caraBayar === 'TRANSFER'">
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700">Nama Bank</label>
-                                                <input type="text" name="nama_bank" value="{{ old('nama_bank') }}" placeholder="Contoh: BRI / BNI / Mandiri" required
-                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                            </div>
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700">Nomor Rekening</label>
-                                                <input type="text" name="no_rekening" value="{{ old('no_rekening') }}" required
-                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                            </div>
-                                            <div class="md:col-span-2">
-                                                <label class="block text-sm font-medium text-gray-700">Atas Nama Rekening</label>
-                                                <input type="text" name="atas_nama_rekening" value="{{ old('atas_nama_rekening') }}" required
-                                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                            </div>
+                                    <!-- Satu nomor kwitansi untuk seluruh pembayaran ini -->
+                                    <div class="mb-4" x-show="caraBayar === 'TUNAI'" style="display: none;">
+                                        <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
+                                        <input type="text" name="no_kwitansi" value="{{ old('no_kwitansi') }}"
+                                               placeholder="Berlaku untuk seluruh pembayaran pengajuan ini"
+                                               :required="caraBayar === 'TUNAI'"
+                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        @error('no_kwitansi')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                                    </div>
+
+                                    <!-- PENUH: satu penerima -->
+                                    <template x-if="jenisPencairan === 'PENUH'">
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700">Nama Penerima</label>
+                                            <input type="text" name="nama_penerima"
+                                                   value="{{ old('nama_penerima', $pengajuan->nama_penerima) }}"
+                                                   :required="jenisPencairan === 'PENUH'"
+                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                            @error('nama_penerima')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                                         </div>
                                     </template>
 
-                                    <!-- Jalur TUNAI -->
-                                    <template x-if="caraBayar === 'TUNAI'">
+                                    <!-- PARSIAL: boleh dibagi ke beberapa penerima sekaligus -->
+                                    <template x-if="jenisPencairan === 'PARSIAL'">
                                         <div class="mb-4">
-                                            <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
-                                            <input type="text" name="no_kwitansi" value="{{ old('no_kwitansi') }}" placeholder="Nomor kwitansi pembayaran tunai" required
-                                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                            <p class="mt-1 text-xs text-gray-600">Pembayaran tunai tidak memerlukan data rekening.</p>
-                                        </div>
+                                        <x-penerima-repeater :batas="(float) $pengajuan->total_nominal" warna="blue" />
+                                        <p class="mt-2 text-xs text-gray-600">
+                                            Total pengajuan Rp {{ number_format((float) $pengajuan->total_nominal, 0, ',', '.') }}.
+                                            Sisanya dibayarkan menyusul dan tetap tampil di dashboard.
+                                        </p>
+                                    </div>
                                     </template>
                                 </div>
-                            @endif
 
                             <div>
                                 <label class="block font-medium text-sm text-gray-700">Catatan <span class="text-gray-400">(Opsional)</span></label>
@@ -328,10 +349,161 @@
                             </div>
 
                             <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4">
-                                Simpan & Selesaikan Pengajuan
+                                Simpan Pembayaran
                             </button>
                         </div>
                     </form>
+
+                @elseif($pengajuan->status->kode_status === 'PENCAIRAN_PARSIAL')
+                    {{-- Pengajuan yang dicairkan bertahap: catat pembayaran berikutnya --}}
+                    @php
+                        $sisa = $pengajuan->sisa_pembayaran;
+                        $dibayar = $pengajuan->total_dibayar;
+                    @endphp
+
+                    <h3 class="font-bold text-lg mb-1 border-b pb-2">Pembayaran Berikutnya</h3>
+                    <p class="mb-4 text-sm text-gray-600">
+                        Metode: <strong>{{ $pengajuan->metode_label }}</strong> ·
+                        pencairan <strong>bertahap</strong>
+                    </p>
+
+                    <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase text-amber-700">Total Pengajuan</p>
+                                <p class="font-bold">Rp {{ number_format((float) $pengajuan->total_nominal, 0, ',', '.') }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold uppercase text-amber-700">Sudah Dibayar</p>
+                                <p class="font-bold text-green-700">Rp {{ number_format($dibayar, 0, ',', '.') }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold uppercase text-amber-700">Sisa</p>
+                                <p class="font-bold text-red-700">Rp {{ number_format($sisa, 0, ',', '.') }}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-amber-200">
+                            <div class="h-full rounded-full bg-green-500" style="width: {{ $pengajuan->persen_dibayar }}%"></div>
+                        </div>
+                        <p class="mt-1 text-xs text-amber-800">{{ $pengajuan->persen_dibayar }}% dari total sudah dibayarkan.</p>
+                    </div>
+
+                    <form action="{{ route('bendahara.pengajuan.bayar', $pengajuan->id_pengajuan) }}" method="POST">
+                        @csrf
+                        <div class="space-y-4" x-data="{
+                                caraBayar: '{{ old('cara_bayar', '') }}',
+                                jenisPencairan: '{{ old('jenis_pencairan', '') }}',
+                             }">
+
+                            <div>
+                                <label class="block font-medium text-sm text-gray-700 mb-2">Jumlah Dibayarkan:</label>
+                                <div class="flex flex-wrap gap-4">
+                                    <label class="flex items-center space-x-2">
+                                        <input type="radio" name="jenis_pencairan" value="PENUH" x-model="jenisPencairan" required class="text-blue-600">
+                                        <span class="text-sm font-medium">Lunasi sisa (Rp {{ number_format($sisa, 0, ',', '.') }})</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="radio" name="jenis_pencairan" value="PARSIAL" x-model="jenisPencairan" required class="text-blue-600">
+                                        <span class="text-sm font-medium">Sebagian (bisa beberapa penerima)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Cara bayar berlaku untuk seluruh penerima pada pembayaran ini -->
+                            <div>
+                                <label class="block font-medium text-sm text-gray-700 mb-2">Cara Pembayaran:</label>
+                                <div class="flex flex-wrap gap-4">
+                                    <label class="flex items-center space-x-2">
+                                        <input type="radio" name="cara_bayar" value="TRANSFER" x-model="caraBayar" required class="text-blue-600">
+                                        <span class="text-sm font-medium">Transfer</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="radio" name="cara_bayar" value="TUNAI" x-model="caraBayar" required class="text-blue-600">
+                                        <span class="text-sm font-medium">Tunai</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Tanggal Pembayaran</label>
+                                <input type="date" name="tgl_transfer" value="{{ old('tgl_transfer') }}" required
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+
+                            <!-- Satu nomor kwitansi berlaku untuk seluruh pengajuan ini -->
+                            @if($pengajuan->no_kwitansi)
+                                <div x-show="caraBayar === 'TUNAI'" style="display: none;">
+                                    <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
+                                    <div class="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                                        <span class="font-semibold">{{ $pengajuan->no_kwitansi }}</span>
+                                        <span class="text-xs text-gray-600">— mengikuti pembayaran sebelumnya</span>
+                                    </div>
+                                </div>
+                            @else
+                                <div x-show="caraBayar === 'TUNAI'" style="display: none;">
+                                    <label class="block text-sm font-medium text-gray-700">Nomor Kwitansi</label>
+                                    <input type="text" name="no_kwitansi" value="{{ old('no_kwitansi') }}"
+                                           placeholder="Berlaku untuk seluruh pembayaran pengajuan ini"
+                                           :required="caraBayar === 'TUNAI'"
+                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                            @endif
+
+                            <!-- PENUH: sisa dilunasi ke satu penerima -->
+                            <template x-if="jenisPencairan === 'PENUH'">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Nama Penerima</label>
+                                    <input type="text" name="nama_penerima" value="{{ old('nama_penerima') }}"
+                                           :required="jenisPencairan === 'PENUH'"
+                                           placeholder="Penerima pelunasan"
+                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                            </template>
+
+                            <!-- SEBAGIAN: satu pembayaran boleh dibagi ke beberapa penerima -->
+                            <template x-if="jenisPencairan === 'PARSIAL'">
+                                <div>
+                                <x-penerima-repeater :batas="$sisa" warna="blue" />
+                                <p class="mt-2 text-xs text-gray-600">Maksimal Rp {{ number_format($sisa, 0, ',', '.') }}.</p>
+                            </div>
+                            </template>
+
+                            <div>
+                                <label class="block font-medium text-sm text-gray-700">Catatan <span class="text-gray-400">(Opsional)</span></label>
+                                <textarea name="catatan" rows="3" class="w-full border-gray-300 rounded-md shadow-sm mt-1">{{ old('catatan') }}</textarea>
+                            </div>
+
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4">
+                                Catat Pembayaran
+                            </button>
+                        </div>
+                    </form>
+                @endif
+
+                {{-- Rincian pembayaran yang sudah dicatat --}}
+                @php $daftarBayar = $pengajuan->bendahara->whereIn('tahap', ['PEMBAYARAN_LANGSUNG', 'KONFIRMASI'])->sortBy('id_bendahara'); @endphp
+                @if($daftarBayar->isNotEmpty())
+                    <div class="mt-6 border-t pt-4">
+                        <h4 class="font-bold text-sm text-gray-800 mb-3">Pembayaran Tercatat ({{ $daftarBayar->count() }})</h4>
+                        <div class="space-y-2">
+                            @foreach($daftarBayar as $bayar)
+                                <div class="flex flex-wrap items-center justify-between gap-2 rounded border border-gray-200 p-3 text-sm">
+                                    <div>
+                                        <p class="font-semibold">Rp {{ number_format((float) $bayar->nominal, 0, ',', '.') }}</p>
+                                        <p class="text-xs text-gray-600">
+                                            {{ $bayar->nama_penerima ?? $bayar->atas_nama_rekening ?? '-' }} ·
+                                            {{ $bayar->cara_bayar === 'TUNAI' ? 'Tunai' : 'Transfer' }}
+                                            @if($bayar->no_kwitansi) · Kwitansi {{ $bayar->no_kwitansi }} @endif
+                                        </p>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        {{ $bayar->tgl_transfer ? \Carbon\Carbon::parse($bayar->tgl_transfer)->format('d M Y') : '-' }}
+                                    </p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 @endif
             </div>
             <!-- Area Linimasa (Timeline) -->

@@ -13,6 +13,8 @@
                         <th class="border py-2 px-4">No. Pengajuan</th>
                         <th class="border py-2 px-4">Pemohon</th>
                         <th class="border py-2 px-4">Tahap Proses</th>
+                        <th class="border py-2 px-4">Nominal</th>
+                        <th class="border py-2 px-4">Penerima</th>
                         <th class="border py-2 px-4">Dokumen</th>
                         <th class="border py-2 px-4">Tanggal Diproses</th>
                         <th class="border py-2 px-4">Aksi / Status</th>
@@ -26,6 +28,12 @@
                             <td class="border py-2 px-4">{{ $item->pengajuan->no_pengajuan ?? '-' }}</td>
                             <td class="border py-2 px-4">{{ $item->pengajuan->user->nama_lengkap ?? $item->pengajuan->user->name ?? '-' }}</td>
                             <td class="border py-2 px-4 font-semibold text-gray-700">{{ $item->tahap ? str_replace('_', ' ', $item->tahap) : '-' }}</td>
+                            <td class="border py-2 px-4 text-right text-sm">
+                                {{ $item->nominal !== null ? 'Rp ' . number_format((float) $item->nominal, 0, ',', '.') : '-' }}
+                            </td>
+                            <td class="border py-2 px-4 text-sm">
+                                {{ $item->nama_penerima ?? $item->atas_nama_rekening ?? '-' }}
+                            </td>
                             <td class="border py-2 px-4 text-sm">
                                 @if($item->tahap === 'PENGAJUAN_SPP')
                                     SPP: {{ $item->no_spp ?? '-' }}
@@ -72,7 +80,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="border py-4 text-center text-gray-500">Belum ada riwayat proses.</td>
+                            <td colspan="10" class="border py-4 text-center text-gray-500">Belum ada riwayat proses.</td>
                         </tr>
                     @endforelse
                 </tbody>

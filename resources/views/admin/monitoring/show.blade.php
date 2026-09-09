@@ -89,6 +89,23 @@
                         <dt class="text-xs font-medium uppercase text-ui-muted">Metode Pembayaran</dt>
                         <dd class="mt-1 font-semibold text-pov-pencairan">{{ $pengajuan->metode_label }}</dd>
                     </div>
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">Jenis Pencairan</dt>
+                        <dd class="mt-1">{{ $pengajuan->jenis_pencairan_label }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">Sudah Dibayarkan</dt>
+                        <dd class="mt-1 font-semibold text-status-done">
+                            {{ $rupiah($pengajuan->total_dibayar) }}
+                            <span class="text-xs font-normal text-ui-muted">({{ $pengajuan->persen_dibayar }}%)</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium uppercase text-ui-muted">Sisa Pembayaran</dt>
+                        <dd class="mt-1 font-semibold {{ $pengajuan->sisa_pembayaran > 0 ? 'text-status-pending' : 'text-ui-muted' }}">
+                            {{ $rupiah($pengajuan->sisa_pembayaran) }}
+                        </dd>
+                    </div>
                     <div class="sm:col-span-2">
                         <dt class="text-xs font-medium uppercase text-ui-muted">Keterangan</dt>
                         <dd class="mt-1 whitespace-pre-line">{{ $pengajuan->keterangan ?? '-' }}</dd>
@@ -169,6 +186,8 @@
 
                             @php
                                 $dok = array_filter([
+                                    'Nominal' => $b->nominal !== null ? $rupiah($b->nominal) : null,
+                                    'Penerima' => $b->nama_penerima ?? $b->atas_nama_rekening,
                                     'No. SPP' => $b->no_spp,
                                     'Tgl. SPP' => $b->tgl_spp ? $tanggal($b->tgl_spp) : null,
                                     'No. SPM' => $b->no_spm,

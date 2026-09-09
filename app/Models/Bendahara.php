@@ -12,6 +12,10 @@ class Bendahara extends Model
 
     public $timestamps = false;
 
+    protected $casts = [
+        'nominal' => 'decimal:2',
+    ];
+
     protected $fillable = [
         'id_pengajuan',
         'id_user',
@@ -19,6 +23,9 @@ class Bendahara extends Model
         // UP/TUP bisa transfer atau tunai; kwitansi dipakai pada pembayaran tunai.
         'cara_bayar',
         'no_kwitansi',
+        // Pencairan bisa bertahap, jadi tiap catatan membawa nominal & penerimanya.
+        'nominal',
+        'nama_penerima',
         'tanggal_proses',
         'no_spp',
         'tgl_spp',

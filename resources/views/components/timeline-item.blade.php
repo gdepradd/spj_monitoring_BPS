@@ -6,6 +6,9 @@
     'catatan' => null,
     'aktor' => null,
 
+    // Rincian tambahan (nominal, penerima, dokumen) sebagai pasangan label => nilai.
+    'rincian' => [],
+
     // kompatibilitas komponen lama
     'judul' => null,
     'kodeStatus' => null,
@@ -135,6 +138,22 @@
                 <x-status-badge :status="$resolvedStatus" :aktif="$aktif" :label="$namaStatus" />
 
             </div>
+
+
+            @if (!empty($rincian))
+                <dl
+                    class="
+                        mt-4 grid gap-2 rounded-lg
+                        bg-ui-page p-3 text-xs sm:grid-cols-2
+                    ">
+                    @foreach ($rincian as $namaRincian => $nilaiRincian)
+                        <div class="flex justify-between gap-3 sm:block">
+                            <dt class="text-ui-muted">{{ $namaRincian }}</dt>
+                            <dd class="font-medium text-ui-text sm:mt-0.5">{{ $nilaiRincian }}</dd>
+                        </div>
+                    @endforeach
+                </dl>
+            @endif
 
 
             @if ($catatan)

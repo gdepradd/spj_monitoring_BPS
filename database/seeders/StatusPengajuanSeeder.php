@@ -71,10 +71,16 @@ class StatusPengajuanSeeder extends Seeder
                 'urutan' => 10,
             ],
             [
+                'kode_status' => 'PENCAIRAN_PARSIAL',
+                'nama_status' => 'Pencairan Sebagian',
+                'keterangan' => 'Sebagian nominal sudah dibayarkan, sisanya menunggu pembayaran berikutnya',
+                'urutan' => 11,
+            ],
+            [
                 'kode_status' => 'SELESAI',
                 'nama_status' => 'Selesai',
                 'keterangan' => 'Dana sudah cair ke penerima',
-                'urutan' => 11,
+                'urutan' => 12,
             ],
         ];
 

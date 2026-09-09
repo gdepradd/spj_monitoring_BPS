@@ -34,15 +34,32 @@
             ->sortByDesc('id_bendahara')
             ->first();
 
-        $bendaharaLangsung = $pengajuan->bendahara
+        // Pencairan bisa bertahap, jadi seluruh terminnya ditampilkan berurutan.
+        $pembayaranLangsung = $pengajuan->bendahara
             ->where('tahap', 'PEMBAYARAN_LANGSUNG')
-            ->sortByDesc('id_bendahara')
-            ->first();
+            ->sortBy('id_bendahara')
+            ->values();
 
-        $bendaharaKonfirmasi = $pengajuan->bendahara
+        $pembayaranKonfirmasi = $pengajuan->bendahara
             ->where('tahap', 'KONFIRMASI')
-            ->sortByDesc('id_bendahara')
-            ->first();
+            ->sortBy('id_bendahara')
+            ->values();
+
+        $bendaharaLangsung = $pembayaranLangsung->last();
+        $bendaharaKonfirmasi = $pembayaranKonfirmasi->last();
+
+        $jumlahTermin = $pembayaranLangsung->count() + $pembayaranKonfirmasi->count();
+
+        // Rincian satu termin pembayaran untuk ditampilkan di linimasa.
+        $rincianPembayaran = fn ($bayar) => array_filter([
+            'Nominal' => $bayar->nominal !== null
+                ? 'Rp ' . number_format((float) $bayar->nominal, 0, ',', '.')
+                : null,
+            'Penerima' => $bayar->nama_penerima ?? $bayar->atas_nama_rekening,
+            'Cara Bayar' => $bayar->cara_bayar === 'TUNAI' ? 'Tunai' : 'Transfer',
+            'No. Kwitansi' => $bayar->no_kwitansi,
+            'No. SP2D' => $bayar->no_sp2d,
+        ]);
 
         $ppk = $pengajuan->ppk
             ->sortByDesc('id_ppk')
@@ -547,23 +564,45 @@
                         />
 
 
-                        {{-- Konfirmasi Bendahara --}}
-                        <x-timeline-item
-                            label="Bendahara — Konfirmasi Pencairan"
-                            :status="$bendaharaKonfirmasi ? 'SELESAI' : null"
-                            :aktif="
-                                $pengajuan->isTahapAktif(
-                                    'PROSES_KONFIRMASI_BENDAHARA'
-                                )
-                            "
-                            :waktu="
-                                $bendaharaKonfirmasi?->tgl_transfer
-                                ?? $bendaharaKonfirmasi?->created_at
-                            "
-                            :catatan="
-                                $bendaharaKonfirmasi?->catatan
-                            "
-                        />
+                        {{-- Konfirmasi Bendahara: satu entri untuk tiap termin pembayaran --}}
+                        @forelse ($pembayaranKonfirmasi as $urutan => $bayar)
+                            <x-timeline-item
+                                :label="
+                                    'Bendahara — Konfirmasi Pencairan'
+                                    . ($pembayaranKonfirmasi->count() > 1
+                                        ? ' (Termin ' . ($urutan + 1) . ' dari ' . $pembayaranKonfirmasi->count() . ')'
+                                        : '')
+                                "
+                                status="SELESAI"
+                                :aktif="false"
+                                :waktu="$bayar->tgl_transfer ?? $bayar->tanggal_proses ?? $bayar->created_at"
+                                :rincian="$rincianPembayaran($bayar)"
+                                :catatan="$bayar->catatan"
+                            />
+                        @empty
+                            <x-timeline-item
+                                label="Bendahara — Konfirmasi Pencairan"
+                                :status="null"
+                                :aktif="$pengajuan->isTahapAktif('PROSES_KONFIRMASI_BENDAHARA')"
+                                :waktu="null"
+                                :catatan="null"
+                            />
+                        @endforelse
+
+                        {{-- Masih ada sisa yang belum dibayarkan --}}
+                        @if ($pembayaranKonfirmasi->isNotEmpty() && $pengajuan->sisa_pembayaran > 0)
+                            <x-timeline-item
+                                label="Menunggu Pembayaran Berikutnya"
+                                :status="null"
+                                :aktif="true"
+                                :waktu="null"
+                                :rincian="[
+                                    'Sudah Dibayar' => 'Rp ' . number_format($pengajuan->total_dibayar, 0, ',', '.'),
+                                    'Sisa' => 'Rp ' . number_format($pengajuan->sisa_pembayaran, 0, ',', '.'),
+                                ]"
+                                :catatan="null"
+                            />
+                        @endif
 
                     @endif
 
@@ -576,22 +615,44 @@
                         $pengajuan->metode_pembayaran === 'UP_TUP'
                     )
 
-                        <x-timeline-item
-                            label="Bendahara — Pembayaran Langsung"
-                            :status="$bendaharaLangsung ? 'SELESAI' : null"
-                            :aktif="
-                                $pengajuan->isTahapAktif(
-                                    'MENUNGGU_PENCAIRAN'
-                                )
-                            "
-                            :waktu="
-                                $bendaharaLangsung?->tgl_transfer
-                                ?? $bendaharaLangsung?->created_at
-                            "
-                            :catatan="
-                                $bendaharaLangsung?->catatan
-                            "
-                        />
+                        @forelse ($pembayaranLangsung as $urutan => $bayar)
+                            <x-timeline-item
+                                :label="
+                                    'Bendahara — Pembayaran Langsung'
+                                    . ($pembayaranLangsung->count() > 1
+                                        ? ' (Termin ' . ($urutan + 1) . ' dari ' . $pembayaranLangsung->count() . ')'
+                                        : '')
+                                "
+                                status="SELESAI"
+                                :aktif="false"
+                                :waktu="$bayar->tgl_transfer ?? $bayar->tanggal_proses ?? $bayar->created_at"
+                                :rincian="$rincianPembayaran($bayar)"
+                                :catatan="$bayar->catatan"
+                            />
+                        @empty
+                            <x-timeline-item
+                                label="Bendahara — Pembayaran Langsung"
+                                :status="null"
+                                :aktif="$pengajuan->isTahapAktif('MENUNGGU_PENCAIRAN')"
+                                :waktu="null"
+                                :catatan="null"
+                            />
+                        @endforelse
+
+                        {{-- Masih ada sisa yang belum dibayarkan --}}
+                        @if ($pembayaranLangsung->isNotEmpty() && $pengajuan->sisa_pembayaran > 0)
+                            <x-timeline-item
+                                label="Menunggu Pembayaran Berikutnya"
+                                :status="null"
+                                :aktif="true"
+                                :waktu="null"
+                                :rincian="[
+                                    'Sudah Dibayar' => 'Rp ' . number_format($pengajuan->total_dibayar, 0, ',', '.'),
+                                    'Sisa' => 'Rp ' . number_format($pengajuan->sisa_pembayaran, 0, ',', '.'),
+                                ]"
+                                :catatan="null"
+                            />
+                        @endif
 
                     @endif
 
@@ -612,11 +673,16 @@
                                 'SELESAI'
                             )
                         "
-                        :waktu="
-                            $pengajuan->status?->kode_status
-                                === 'SELESAI'
-                                    ? $pengajuan->updated_at
-                                    : null
+                        :waktu="$pengajuan->tanggal_selesai"
+                        :rincian="
+                            $pengajuan->status?->kode_status === 'SELESAI'
+                                ? array_filter([
+                                    'Total Dibayarkan' => 'Rp ' . number_format($pengajuan->total_dibayar, 0, ',', '.'),
+                                    'Jumlah Termin' => $jumlahTermin > 1
+                                        ? $jumlahTermin . ' kali pembayaran'
+                                        : null,
+                                ])
+                                : []
                         "
                         :catatan="null"
                     />

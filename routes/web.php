@@ -33,6 +33,8 @@ Route::middleware(['auth', 'role:bendahara'])->prefix('bendahara')->name('bendah
     Route::get('/pengajuan/{id}', [BendaharaController::class, 'show'])->name('pengajuan.show');
     Route::post('/pengajuan/{id}/ajukan', [BendaharaController::class, 'ajukan'])->name('pengajuan.ajukan');
     Route::post('/pengajuan/{id}/konfirmasi', [BendaharaController::class, 'konfirmasi'])->name('pengajuan.konfirmasi');
+    // Pembayaran lanjutan untuk pengajuan yang dicairkan bertahap.
+    Route::post('/pengajuan/{id}/bayar', [BendaharaController::class, 'bayar'])->name('pengajuan.bayar');
     Route::get('/riwayat', [BendaharaController::class, 'riwayat'])->name('riwayat');
 });
 

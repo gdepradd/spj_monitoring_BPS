@@ -21,7 +21,8 @@
         <thead>
             <tr class="border-b border-ui-border text-xs font-semibold uppercase text-ui-muted">
                 <th class="px-6 py-4">No. Pengajuan</th>
-                <th class="px-6 py-4">Tanggal</th>
+                <th class="px-6 py-4">Tanggal Pengajuan</th>
+                <th class="px-6 py-4">Tanggal Selesai</th>
                 <th class="px-6 py-4">Nominal</th>
                 <th class="px-6 py-4">Status</th>
                 <th class="px-6 py-4">Aksi</th>
@@ -35,6 +36,13 @@
                 </td>
                 <td class="px-6 py-5 text-ui-text">
                     {{ \Carbon\Carbon::parse($item->tanggal_pengajuan)->format('d/m/Y') }}
+                </td>
+                <td class="px-6 py-5 text-ui-text">
+                    @if($item->tanggal_selesai)
+                        {{ \Carbon\Carbon::parse($item->tanggal_selesai)->format('d/m/Y') }}
+                    @else
+                        <span class="text-ui-muted">—</span>
+                    @endif
                 </td>
                 <td class="px-6 py-5 font-medium text-ui-text">
                     Rp {{ number_format((float)$item->total_nominal, 0, ',', '.') }}
@@ -70,7 +78,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="px-6 py-8 text-center text-sm text-ui-muted">
+                <td colspan="6" class="px-6 py-8 text-center text-sm text-ui-muted">
                     Tidak ada pengajuan.
                 </td>
             </tr>
