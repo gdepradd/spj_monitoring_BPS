@@ -12,7 +12,6 @@
                     <tr class="bg-gray-100">
                         <th class="border py-2 px-4">No. Pengajuan</th>
                         <th class="border py-2 px-4">Pemohon</th>
-                        <th class="border py-2 px-4">Tahap Verifikasi</th>
                         <th class="border py-2 px-4">Tanggal Diproses</th>
                         <th class="border py-2 px-4">Aksi / Status</th>
                         <th class="border py-2 px-4">Status Pengajuan Saat Ini</th>
@@ -25,7 +24,6 @@
                         <tr>
                             <td class="border py-2 px-4">{{ $item->pengajuan->no_pengajuan ?? '-' }}</td>
                             <td class="border py-2 px-4">{{ $item->pengajuan->user->nama_lengkap ?? $item->pengajuan->user->name ?? '-' }}</td>
-                            <td class="border py-2 px-4 font-semibold text-gray-700">Tahap {{ $item->tahap }}</td>
                             <td class="border py-2 px-4">
                                 {{ \Carbon\Carbon::parse($item->tanggal_verifikasi ?? $item->created_at)->format('d M Y H:i') }}
                             </td>
@@ -49,7 +47,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="border py-4 text-center text-gray-500">Belum ada riwayat proses.</td>
+                            <td colspan="7" class="border py-4 text-center text-gray-500">Belum ada riwayat proses.</td>
                         </tr>
                     @endforelse
                 </tbody>

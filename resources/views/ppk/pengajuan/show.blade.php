@@ -36,15 +36,13 @@
                 </div> -->
 
                 <div class="p-6">
-                    @if($pengajuan->status->kode_status === 'PROSES_PPK')
-                        
-                        <!-- 1. MENAMPILKAN DATA SPP DARI BENDAHARA -->
-                        @php
-                            $spp = $pengajuan->bendahara
-                                ->where('tahap', 'PENGAJUAN_SPP')
-                                ->sortByDesc('id_bendahara')
-                                ->first();
-                        @endphp
+                    <!-- 1. DATA SPP DARI BENDAHARA — selalu tampil, termasuk setelah tahap PPK lewat -->
+                    @php
+                        $spp = $pengajuan->bendahara
+                            ->where('tahap', 'PENGAJUAN_SPP')
+                            ->sortByDesc('id_bendahara')
+                            ->first();
+                    @endphp
 
                         <div class="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-800">
                             <h4 class="font-bold mb-2 border-b border-purple-300 pb-2">Informasi Dokumen SPP</h4>
@@ -79,7 +77,8 @@
                             @endif
                         </div>
 
-                        <!-- 2. FORM HANYA TINGGAL CATATAN DAN TOMBOL ACC -->
+                    <!-- 2. FORM PERSETUJUAN — hanya saat pengajuan memang di tahap PPK -->
+                    @if($pengajuan->status->kode_status === 'PROSES_PPK')
                         <form action="{{ route('ppk.pengajuan.terbitkan-spm', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                             @csrf
                             <div class="space-y-5">

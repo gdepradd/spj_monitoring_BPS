@@ -49,6 +49,18 @@
         rupiah(angka) {
             return 'Rp ' + Math.round(angka).toLocaleString('id-ID');
         },
+        /* Sisakan digit saja, lalu buang nol di depan supaya '007' jadi '7'. */
+        bersihkan(teks) {
+            return String(teks).replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+        },
+        /* Pemisah ribuan untuk kolom nominal; tanpa awalan 'Rp'. */
+        format(angka) {
+            return angka === '' || angka === null ? '' : Number(angka).toLocaleString('id-ID');
+        },
+        ketikNominal(baris, peristiwa) {
+            baris.nominal = this.bersihkan(peristiwa.target.value);
+            peristiwa.target.value = this.format(baris.nominal);
+        },
      }"
      class="rounded-lg border bg-white p-3 {{ $gaya['kotak'] }}">
 
@@ -80,9 +92,21 @@
 
                 <div>
                     <label class="block text-xs font-medium text-gray-700">Nominal</label>
-                    <input type="number" min="1" step="0.01" x-model="baris.nominal"
-                           :name="'penerima[' + i + '][nominal]'" required
-                           class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm {{ $gaya['fokus'] }}">
+
+                    {{-- Kolom yang dilihat Bendahara: teks berpemisah ribuan, tanpa
+                         tombol panah dan tidak bisa berubah karena roda tetikus. --}}
+                    <div class="relative mt-1">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2 text-sm text-gray-500">
+                            Rp
+                        </span>
+                        <input type="text" inputmode="numeric" autocomplete="off" required
+                               :value="format(baris.nominal)"
+                               x-on:input="ketikNominal(baris, $event)"
+                               class="block w-full rounded-md border-gray-300 pl-8 text-sm shadow-sm {{ $gaya['fokus'] }}">
+                    </div>
+
+                    {{-- Nilai sebenarnya yang dibaca server: angka tanpa titik. --}}
+                    <input type="hidden" :name="'penerima[' + i + '][nominal]'" :value="baris.nominal">
                 </div>
 
             </div>

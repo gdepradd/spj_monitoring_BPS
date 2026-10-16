@@ -4,14 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login - SPJ Monitoring BPS</title>
+    <link rel="icon" type="image/webp" href="{{ asset('aset/bps-icon.webp') }}">
+    <title>Login - Sistem Monitoring Pencairan</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="flex min-h-screen items-center justify-center bg-ui-page p-4 text-ui-text">
     <div class="w-full max-w-md rounded-2xl border border-ui-border bg-ui-card p-8 shadow-sm">
         <div class="mb-8 text-center">
             <x-application-logo class="mx-auto h-auto w-60" />
-            <h1 class="mt-6 text-2xl font-bold">SPJ Monitoring BPS</h1>
+            <h1 class="mt-6 text-2xl font-bold">Sistem Monitoring Pencairan</h1>
             <p class="mt-2 text-sm text-ui-muted">Masuk menggunakan akun yang diberikan administrator.</p>
         </div>
 

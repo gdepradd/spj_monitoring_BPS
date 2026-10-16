@@ -196,9 +196,6 @@
                                     'Cara Bayar' => $b->cara_bayar === 'TUNAI' ? 'Tunai' : ($b->cara_bayar ? 'Transfer' : null),
                                     ($b->cara_bayar === 'TUNAI' ? 'Tgl. Dibayarkan' : 'Tgl. Transfer') => $b->tgl_transfer ? $tanggal($b->tgl_transfer) : null,
                                     'No. Kwitansi' => $b->no_kwitansi,
-                                    'Nama Bank' => $b->nama_bank,
-                                    'No. Rekening' => $b->no_rekening,
-                                    'Atas Nama' => $b->atas_nama_rekening,
                                 ]);
                             @endphp
 

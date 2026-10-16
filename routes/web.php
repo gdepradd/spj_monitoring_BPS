@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DivisiController;
 use App\Http\Controllers\Admin\MonitoringController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Pegawai\DashboardController as PegawaiDashboardController;
@@ -11,6 +12,13 @@ use App\Http\Controllers\Pencairan\PpkController;
 use App\Http\Controllers\Pencairan\BendaharaController;
 use App\Http\Controllers\Pencairan\PpspmController;
 use App\Http\Controllers\RiwayatController;
+use App\Http\Controllers\Auth\PasswordController;
+
+// GANTI PASSWORD — milik akun sendiri, terbuka untuk semua role.
+Route::middleware('auth')->group(function () {
+    Route::get('/akun/password', [PasswordController::class, 'edit'])->name('password.edit');
+    Route::put('/akun/password', [PasswordController::class, 'update'])->name('password.update');
+});
 
 // DETAIL RIWAYAT (dipakai semua role: verifikator s.d. pencairan)
 Route::middleware(['auth', 'role:pegawai,verifikator,ppk,bendahara,ppspm,admin'])
@@ -64,22 +72,33 @@ Route::get('/', function () {
     });
 });
 
+// DASHBOARD PEGAWAI — tetap khusus pegawai karena memuat panel pengajuan satu divisi.
+// Role lain memakai dashboard perannya masing-masing.
 Route::middleware(['auth', 'role:pegawai'])
     ->prefix('pegawai')
     ->name('pegawai.')
     ->group(function () {
         Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
+    });
 
-        // Harus didefinisikan sebelum /pengajuan/{pengajuan} agar "riwayat" tidak terbaca sebagai ID.
-        Route::get('/pengajuan/riwayat', [PengajuanController::class, 'riwayat'])
-            ->name('pengajuan.riwayat');
+// PENGAJUAN PRIBADI — terbuka untuk semua role pelaksana, bukan hanya pegawai.
+// Verifikator/PPK/Bendahara/PPSPM tetap menjalankan tugas pemeriksaannya di grup
+// rutenya sendiri; rute di sini hanya menyangkut pengajuan milik akun sendiri,
+// dan setiap aksi pada satu pengajuan dijaga PengajuanPolicy (cek kepemilikan).
+// Admin tidak disertakan karena perannya read-only atas alur pengajuan.
+Route::middleware(['auth', 'role:pegawai,verifikator,ppk,bendahara,ppspm'])
+    ->prefix('pengajuan')
+    ->name('pengajuan.')
+    ->group(function () {
+        // Harus didefinisikan sebelum /{pengajuan} agar "create" tidak
+        // terbaca sebagai ID pengajuan.
+        Route::get('/create', [PengajuanController::class, 'create'])->name('create');
 
-        Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('pengajuan.index');
-        Route::get('/pengajuan/create', [PengajuanController::class, 'create'])->name('pengajuan.create');
-        Route::post('/pengajuan', [PengajuanController::class, 'store'])->name('pengajuan.store');
-        Route::get('/pengajuan/{pengajuan}', [PengajuanController::class, 'show'])->name('pengajuan.show');
-        Route::get('/pengajuan/{pengajuan}/edit', [PengajuanController::class, 'edit'])->name('pengajuan.edit');
-        Route::put('/pengajuan/{pengajuan}', [PengajuanController::class, 'update'])->name('pengajuan.update');
+        Route::get('/', [PengajuanController::class, 'index'])->name('index');
+        Route::post('/', [PengajuanController::class, 'store'])->name('store');
+        Route::get('/{pengajuan}', [PengajuanController::class, 'show'])->name('show');
+        Route::get('/{pengajuan}/edit', [PengajuanController::class, 'edit'])->name('edit');
+        Route::put('/{pengajuan}', [PengajuanController::class, 'update'])->name('update');
     });
 
 // ADMIN (super admin): monitoring menyeluruh + manajemen user.
@@ -94,6 +113,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/monitoring/pengajuan/{id}', [MonitoringController::class, 'show'])->name('monitoring.show');
 
         Route::resource('users', UserController::class)->except('show');
+        Route::resource('divisi', DivisiController::class)->except('show')->parameters(['divisi' => 'divisi']);
     });
 Route::middleware(['auth', 'role:verifikator'])->prefix('verifikator')->name('verifikator.')->group(function () {
     Route::redirect('/dashboard', '/verifikator/pengajuan')->name('dashboard');

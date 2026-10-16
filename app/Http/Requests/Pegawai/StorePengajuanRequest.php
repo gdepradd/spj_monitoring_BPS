@@ -2,13 +2,17 @@
 
 namespace App\Http\Requests\Pegawai;
 
+use App\Models\Pengajuan;
+use App\Support\Rupiah;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePengajuanRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isRole('pegawai') ?? false;
+        // Daftar peran pengaju dipusatkan di PengajuanPolicy agar rute,
+        // policy, dan form request tidak bisa berbeda pendapat.
+        return $this->user()?->can('create', Pengajuan::class) ?? false;
     }
 
     public function rules(): array
@@ -16,7 +20,6 @@ class StorePengajuanRequest extends FormRequest
     return [
         'tanggal_pengajuan' => ['required', 'date'],
         'bulan_kegiatan'    => ['required', 'date'],
-        'tim_pengaju'       => ['required', 'string', 'max:255'],
         'nama_penerima'     => ['required', 'string', 'max:255'],
         'keterangan'        => ['required', 'string'],
         'total_nominal'     => ['required', 'numeric', 'min:0'],
@@ -32,5 +35,18 @@ class StorePengajuanRequest extends FormRequest
             'total_nominal.required' => 'Total nominal wajib diisi.',
             'total_nominal.numeric' => 'Total nominal harus berupa angka.',
         ];
+    }
+
+    /**
+     * Angka rupiah berpemisah ribuan dinormalkan sebelum divalidasi.
+     * Lihat App\Support\Rupiah::keAngka() untuk alasannya.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('total_nominal')) {
+            $this->merge([
+                'total_nominal' => Rupiah::keAngka($this->input('total_nominal')),
+            ]);
+        }
     }
 }

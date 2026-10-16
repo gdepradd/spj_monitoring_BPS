@@ -10,13 +10,14 @@
     <div class="overflow-hidden rounded-xl border border-ui-border bg-ui-card">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-ui-border text-sm">
-                <thead class="bg-ui-page text-left text-ui-muted"><tr><th class="px-4 py-3">Nama</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Role</th><th class="px-4 py-3">Urutan Verifikator</th><th class="px-4 py-3">Aktif</th><th class="px-4 py-3">Aksi</th></tr></thead>
+                <thead class="bg-ui-page text-left text-ui-muted"><tr><th class="px-4 py-3">Nama</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Role</th><th class="px-4 py-3">Divisi</th><th class="px-4 py-3">Urutan Verifikator</th><th class="px-4 py-3">Aktif</th><th class="px-4 py-3">Aksi</th></tr></thead>
                 <tbody class="divide-y divide-ui-border">
                 @foreach($users as $user)
                     <tr>
                         <td class="px-4 py-3 font-medium">{{ $user->nama_lengkap }}</td>
                         <td class="px-4 py-3">{{ $user->email }}</td>
                         <td class="px-4 py-3">{{ $user->role->nama_role }}</td>
+                        <td class="px-4 py-3">{{ $user->divisi?->nama_divisi ?? '—' }}</td>
                         <td class="px-4 py-3">{{ $user->urutan_verifikator ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $user->status_aktif ? 'Ya' : 'Tidak' }}</td>
                         <td class="px-4 py-3">

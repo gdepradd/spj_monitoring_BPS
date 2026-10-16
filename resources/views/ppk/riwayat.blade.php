@@ -12,6 +12,7 @@
                     <tr class="bg-gray-100">
                         <th class="border py-2 px-4">No. Pengajuan</th>
                         <th class="border py-2 px-4">Pemohon</th>
+                        <th class="border py-2 px-4">No. SPP</th>
                         <th class="border py-2 px-4">Tanggal Diproses</th>
                         <th class="border py-2 px-4">Aksi / Status</th>
                         <th class="border py-2 px-4">Catatan</th>
@@ -23,6 +24,12 @@
                         <tr>
                             <td class="border py-2 px-4">{{ $item->pengajuan->no_pengajuan ?? '-' }}</td>
                             <td class="border py-2 px-4">{{ $item->pengajuan->user->nama_lengkap ?? $item->pengajuan->user->name ?? '-' }}</td>
+                            <td class="border py-2 px-4 text-sm">
+                                {{ $item->pengajuan->no_spp ?? '-' }}
+                                @if($item->pengajuan->tgl_spp)
+                                    <span class="text-gray-500">({{ \Carbon\Carbon::parse($item->pengajuan->tgl_spp)->format('d M Y') }})</span>
+                                @endif
+                            </td>
                             <td class="border py-2 px-4">{{ $item->tanggal_proses ? \Carbon\Carbon::parse($item->tanggal_proses)->format('d M Y H:i') : '-' }}</td>
                             <td class="border py-2 px-4">
                                 @if($item->id_status == 1)
@@ -47,7 +54,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="border py-4 text-center text-gray-500">Belum ada riwayat proses.</td>
+                            <td colspan="7" class="border py-4 text-center text-gray-500">Belum ada riwayat proses.</td>
                         </tr>
                     @endforelse
                 </tbody>

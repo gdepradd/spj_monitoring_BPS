@@ -7,7 +7,7 @@ use Illuminate\View\Component;
 
 class AppLayout extends Component
 {
-    public function __construct(public string $title = 'SPJ Monitoring')
+    public function __construct(public string $title = 'Sistem Monitoring Pencairan')
     {
     }
 

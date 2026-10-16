@@ -2,7 +2,8 @@
 <html lang="id">
 <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>404 - SPJ Monitoring BPS</title>
+    <link rel="icon" type="image/webp" href="{{ asset('aset/bps-icon.webp') }}">
+    <title>404 - Sistem Monitoring Pencairan</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="flex min-h-screen items-center justify-center bg-ui-page p-4 text-ui-text">

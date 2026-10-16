@@ -7,6 +7,8 @@ use App\Http\Requests\Pegawai\StorePengajuanRequest;
 use App\Http\Requests\Pegawai\UpdatePengajuanRequest;
 use App\Models\Pengajuan;
 use App\Models\StatusPengajuan;
+use App\Models\StatusVerifikasi;
+use App\Models\Verifikasi;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -21,13 +23,33 @@ class PengajuanController extends Controller
     | Daftar Pengajuan Pegawai
     |--------------------------------------------------------------------------
     */
+    /**
+     * Kolom yang boleh dipakai untuk mengurutkan daftar pengajuan.
+     * Kuncinya adalah nilai ?urut= pada URL, isinya kolom tabel yang dipakai
+     * di ORDER BY. Daftar putih ini sekaligus mencegah nilai sembarang dari
+     * URL masuk ke query.
+     */
+    private const KOLOM_URUT = [
+        'tanggal_pengajuan' => 'pengajuan.tanggal_pengajuan',
+        'total_nominal' => 'pengajuan.total_nominal',
+        // tanggal_selesai bukan kolom tabel melainkan accessor, jadi
+        // pengurutannya ditangani urutkanTanggalSelesai().
+        'tanggal_selesai' => null,
+    ];
+
     public function index(): View
     {
+        $urut = array_key_exists((string) request('urut'), self::KOLOM_URUT)
+            ? (string) request('urut')
+            : 'tanggal_pengajuan';
+
+        $arah = request('arah') === 'asc' ? 'asc' : 'desc';
+
         $query = Pengajuan::query()
-            // bendahara ikut dimuat agar tanggal selesai tidak memicu query per baris.
+            // bendahara ikut dimuat agar tanggal selesai dan total yang sudah
+            // dibayar tidak memicu query per baris.
             ->with(['status', 'bendahara'])
-            ->where('id_user', Auth::id())
-            ->latest('created_at');
+            ->where('id_user', Auth::id());
 
         if ($kodeStatus = request('status')) {
             $query->whereHas(
@@ -38,6 +60,16 @@ class PengajuanController extends Controller
                 )
             );
         }
+
+        if ($urut === 'tanggal_selesai') {
+            $this->urutkanTanggalSelesai($query, $arah);
+        } else {
+            $query->orderBy(self::KOLOM_URUT[$urut], $arah);
+        }
+
+        // Pengurut kedua: menjaga urutan baris tetap sama antar halaman bila
+        // nilai kolom utamanya seri (mis. beberapa pengajuan di tanggal sama).
+        $query->orderByDesc('pengajuan.id_pengajuan');
 
         $pengajuan = $query
             ->paginate(10)
@@ -51,8 +83,41 @@ class PengajuanController extends Controller
             'pegawai.pengajuan.index',
             compact(
                 'pengajuan',
-                'statusList'
+                'statusList',
+                'urut',
+                'arah'
             )
+        );
+    }
+
+
+    /**
+     * Urutkan berdasarkan tanggal selesai.
+     *
+     * Tanggal selesai tidak disimpan sebagai kolom; nilainya berasal dari
+     * pembayaran terakhir dan hanya berlaku saat pengajuan sudah SELESAI.
+     * Ekspresi di bawah menirukan accessor getTanggalSelesaiAttribute() supaya
+     * urutan yang muncul sama dengan angka yang dibaca pengguna di tabel.
+     * Pengajuan yang belum selesai bernilai NULL sehingga mengelompok di ujung.
+     */
+    private function urutkanTanggalSelesai($query, string $arah): void
+    {
+        $idSelesai = (int) StatusPengajuan::query()
+            ->where('kode_status', 'SELESAI')
+            ->value('id_status');
+
+        // $arah sudah dibatasi pada 'asc'/'desc' oleh index(), dan $idSelesai
+        // dikirim sebagai binding, jadi tidak ada nilai dari URL yang masuk
+        // ke SQL secara langsung.
+        $query->orderByRaw(
+            '(case when pengajuan.id_status = ?'
+            . ' then ('
+            . '   select max(coalesce(b.tgl_transfer, b.tanggal_proses))'
+            . '   from bendahara b'
+            . '   where b.id_pengajuan = pengajuan.id_pengajuan'
+            . "     and b.tahap in ('PEMBAYARAN_LANGSUNG', 'KONFIRMASI')"
+            . ' ) end) ' . $arah,
+            [$idSelesai]
         );
     }
 
@@ -64,7 +129,19 @@ class PengajuanController extends Controller
     */
     public function create(): View
     {
-        return view('pegawai.pengajuan.create');
+        return view('pegawai.pengajuan.create', [
+            'divisiPengaju' => $this->divisiPengaju(),
+        ]);
+    }
+
+
+    /**
+     * Nama divisi akun yang sedang login, dipakai sebagai tim pengaju.
+     * Mengembalikan null bila admin belum menetapkan divisi untuk akun ini.
+     */
+    private function divisiPengaju(): ?string
+    {
+        return auth()->user()?->divisi?->nama_divisi;
     }
 
 
@@ -75,29 +152,69 @@ class PengajuanController extends Controller
     */
     public function store(StorePengajuanRequest $request): RedirectResponse
     {
-        $statusDiajukan = StatusPengajuan::query()
-            ->where('kode_status', 'DIAJUKAN')
+        $pengaju = auth()->user();
+
+        /*
+         * Verifikator tahap 1 yang mengajukan SPJ-nya sendiri tidak boleh
+         * memverifikasi pengajuannya sendiri. Di instansi ini hanya ada satu
+         * verifikator per tahap, jadi pengajuannya tidak bisa sekadar
+         * dikeluarkan dari antrean — tidak ada yang menggantikan dan pengajuan
+         * akan macet selamanya. Karena itu tahap 1 dilewati: pengajuan langsung
+         * mulai di VERIFIKASI_2, dan persetujuan tahap 1 dicatat atas nama
+         * pengaju itu sendiri supaya riwayatnya tetap utuh (tidak ada tahap
+         * yang bolong). Perlakuan ini KHUSUS verifikator tahap 1; tahap 2, 3
+         * dan seluruh peran pencairan tetap melalui alur normal.
+         */
+        $lewatiTahap1 = $pengaju->isRole('verifikator')
+            && (int) $pengaju->urutan_verifikator === 1;
+
+        $kodeStatusAwal = $lewatiTahap1 ? 'VERIFIKASI_2' : 'DIAJUKAN';
+
+        $statusAwal = StatusPengajuan::query()
+            ->where('kode_status', $kodeStatusAwal)
             ->firstOrFail();
 
-        $pengajuan = DB::transaction(function () use ($request, $statusDiajukan) {
-            return Pengajuan::create([
+        $pengajuan = DB::transaction(function () use ($request, $statusAwal, $lewatiTahap1, $pengaju) {
+            $pengajuan = Pengajuan::create([
                 'no_pengajuan' => $this->generateNoPengajuan(
                     \Carbon\Carbon::parse($request->tanggal_pengajuan)->format('Ymd')
                 ),
-                'id_user' => auth()->id(),
+                'id_user' => $pengaju->id_user,
                 'tanggal_pengajuan' => $request->tanggal_pengajuan,
                 'perihal' => \Illuminate\Support\Str::limit($request->keterangan, 100, '...'),
                 'keterangan' => $request->keterangan,
                 'total_nominal' => $request->total_nominal,
-                'id_status' => $statusDiajukan->id_status,
+                'id_status' => $statusAwal->id_status,
                 'bulan_kegiatan' => $request->bulan_kegiatan,
-                'tim_pengaju' => $request->tim_pengaju,
+                // Bukan dari input: tim pengaju selalu mengikuti divisi akun.
+                'tim_pengaju' => $this->divisiPengaju(),
                 'nama_penerima' => $request->nama_penerima,
                 'catatan_pengaju' => $request->catatan_pengaju,
             ]);
+
+            if ($lewatiTahap1) {
+                $statusAcc = StatusVerifikasi::query()
+                    ->where('kode_status', 'ACC')
+                    ->firstOrFail();
+
+                Verifikasi::create([
+                    'id_pengajuan' => $pengajuan->id_pengajuan,
+                    'id_verifikator' => $pengaju->id_user,
+                    'tahap' => 1,
+                    'tanggal_verifikasi' => now(),
+                    'id_status_verifikasi' => $statusAcc->id_status_verifikasi,
+                    'catatan' => 'Disetujui otomatis: pengajuan ini dibuat oleh verifikator tahap 1 sendiri, sehingga verifikasi tahap 1 dilewati.',
+                ]);
+            }
+
+            return $pengajuan;
         });
 
-        return redirect()->route('pegawai.pengajuan.index')->with('success', 'Pengajuan berhasil dibuat.');
+        $pesan = $lewatiTahap1
+            ? 'Pengajuan berhasil dibuat. Karena Anda verifikator tahap 1, verifikasi tahap 1 tercatat otomatis dan pengajuan langsung diteruskan ke verifikator tahap 2.'
+            : 'Pengajuan berhasil dibuat.';
+
+        return redirect()->route('pengajuan.index')->with('success', $pesan);
     }
 
 
@@ -202,7 +319,7 @@ class PengajuanController extends Controller
 
         return view(
             'pegawai.pengajuan.edit',
-            compact('pengajuan')
+            compact('pengajuan') + ['divisiPengaju' => $this->divisiPengaju()]
         );
     }
 
@@ -235,33 +352,15 @@ class PengajuanController extends Controller
             'keterangan'        => $request->keterangan,
             'total_nominal'     => $request->total_nominal,
             'bulan_kegiatan'    => $request->bulan_kegiatan,
-            'tim_pengaju'       => $request->tim_pengaju,
+            // Mengikuti divisi akun; nilai lama dipertahankan bila belum ada divisi
+            // supaya data pengajuan lama tidak terhapus saat revisi.
+            'tim_pengaju'       => $this->divisiPengaju() ?? $pengajuan->tim_pengaju,
             'nama_penerima'     => $request->nama_penerima,
             'catatan_pengaju'   => $request->catatan_pengaju,
             'id_status'         => $statusTarget->id_status, // Status dinamis masuk ke sini
         ]);
 
-        return redirect()->route('pegawai.pengajuan.index')->with('success', 'Pengajuan berhasil diperbaiki dan dikembalikan ke pemeriksa terakhir.');
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Riwayat Pengajuan
-    |--------------------------------------------------------------------------
-    */
-    public function riwayat(): View
-    {
-        $pengajuan = Pengajuan::query()
-            ->with(['status', 'bendahara'])
-            ->where('id_user', Auth::id())
-            ->latest('created_at')
-            ->paginate(15);
-
-        return view(
-            'pegawai.pengajuan.riwayat',
-            compact('pengajuan')
-        );
+        return redirect()->route('pengajuan.index')->with('success', 'Pengajuan berhasil diperbaiki dan dikembalikan ke pemeriksa terakhir.');
     }
 
 

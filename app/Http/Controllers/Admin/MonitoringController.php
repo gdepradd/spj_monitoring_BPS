@@ -462,9 +462,6 @@ class MonitoringController extends Controller
                     'Cara Bayar' => $row->cara_bayar ? ucfirst(strtolower($row->cara_bayar)) : null,
                     'Tgl. Bayar' => $this->tanggal($row->tgl_transfer),
                     'No. Kwitansi' => $row->no_kwitansi,
-                    'Bank' => $row->nama_bank,
-                    'No. Rekening' => $row->no_rekening,
-                    'Atas Nama' => $row->atas_nama_rekening,
                 ],
                 'PPK' => [
                     'No. SPM' => $row->no_spm,

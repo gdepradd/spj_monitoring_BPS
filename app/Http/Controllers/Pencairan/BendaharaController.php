@@ -7,6 +7,7 @@ use App\Models\Pengajuan;
 use App\Models\Bendahara;
 use App\Models\StatusPengajuan;
 use App\Services\PencairanService;
+use App\Support\Rupiah;
 use Illuminate\Http\Request;
 
 class BendaharaController extends Controller
@@ -142,6 +143,8 @@ class BendaharaController extends Controller
                 ->with('error', 'Pengajuan ini tidak berada pada tahap pemilihan metode pembayaran.');
         }
 
+        $this->normalkanNominalPenerima($request);
+
         $request->validate(array_merge([
             'id_status_pencairan' => 'required|in:1,2,3', // 1=ACC, 2=REVISI, 3=TOLAK
             'metode_pembayaran' => 'required_if:id_status_pencairan,1|nullable|in:LS_BENDAHARA,LS_PIHAK_KETIGA,UP_TUP',
@@ -221,6 +224,8 @@ class BendaharaController extends Controller
         $rules['nama_penerima'] = 'exclude_unless:jenis_pencairan,PENUH|required|string|max:150';
         $rules += $this->aturanPenerima((float) $pengajuan->total_nominal);
 
+        $this->normalkanNominalPenerima($request);
+
         $pesan += array_merge([
             'cara_bayar.required' => 'Pilih cara pembayaran ke penerima (transfer atau tunai).',
             'jenis_pencairan.required' => 'Pilih pencairan penuh atau parsial.',
@@ -267,6 +272,8 @@ class BendaharaController extends Controller
         // termin ini mewarisinya sehingga Bendahara tidak perlu mengisi lagi.
         $kwitansiPengajuan = $pengajuan->no_kwitansi;
 
+        $this->normalkanNominalPenerima($request);
+
         $request->validate(array_merge([
             'jenis_pencairan' => 'required|in:PENUH,PARSIAL',
             'tgl_transfer' => 'required|date',
@@ -303,6 +310,31 @@ class BendaharaController extends Controller
      * Satu pembayaran boleh dibagi ke beberapa orang sekaligus, asalkan
      * totalnya tidak melebihi nominal yang masih boleh dibayarkan.
      */
+    /**
+     * Normalkan nominal tiap penerima sebelum divalidasi.
+     *
+     * Form mengirim angka murni lewat input hidden, tapi bila nilai berformat
+     * "2.500.000" sampai ke sini, aturan 'numeric' akan membacanya sebagai 2,5
+     * dan mencatat pembayaran dua setengah rupiah tanpa peringatan.
+     * Lihat App\Support\Rupiah::keAngka().
+     */
+    private function normalkanNominalPenerima(Request $request): void
+    {
+        $penerima = $request->input('penerima');
+
+        if (! is_array($penerima)) {
+            return;
+        }
+
+        foreach ($penerima as $i => $baris) {
+            if (is_array($baris) && array_key_exists('nominal', $baris)) {
+                $penerima[$i]['nominal'] = Rupiah::keAngka($baris['nominal']);
+            }
+        }
+
+        $request->merge(['penerima' => $penerima]);
+    }
+
     private function aturanPenerima(float $batas): array
     {
         return [
@@ -343,13 +375,25 @@ class BendaharaController extends Controller
         ];
     }
 
+    /**
+     * Riwayat dikelompokkan per pengajuan, bukan per catatan proses.
+     *
+     * Satu pengajuan bisa punya beberapa catatan (SPP, konfirmasi, tiap termin
+     * pembayaran), sehingga menampilkan per catatan membuat nomor pengajuan yang
+     * sama muncul berulang. Di sini satu baris mewakili satu nomor pengajuan,
+     * dengan ringkasan seluruh proses yang pernah Bendahara ini lakukan padanya.
+     */
     public function riwayat()
     {
-        $riwayat = Bendahara::where('id_user', auth()->id())
-                    ->with(['pengajuan.user', 'pengajuan.status'])
-                    ->orderByDesc('id_bendahara')
-                    ->paginate(15);
-                    
+        $idPengajuan = Bendahara::where('id_user', auth()->id())
+            ->distinct()
+            ->pluck('id_pengajuan');
+
+        $riwayat = Pengajuan::with(['user', 'status', 'bendahara.user'])
+            ->whereIn('id_pengajuan', $idPengajuan)
+            ->orderByDesc('id_pengajuan')
+            ->paginate(15);
+
         return view('bendahara.riwayat', compact('riwayat'));
     }
 }

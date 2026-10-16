@@ -4,7 +4,7 @@
             Pengajuan ini berstatus <strong>REVISI</strong>. Setelah disimpan, status kembali ke <strong>VERIFIKASI_1</strong> sesuai keputusan default pada issue.
         </div>
 
-        <form method="POST" action="{{ route('pegawai.pengajuan.update', $pengajuan) }}" class="space-y-5">
+        <form method="POST" action="{{ route('pengajuan.update', $pengajuan) }}" class="space-y-5">
             @csrf
             @method('PUT')
 
@@ -14,11 +14,17 @@
                 @error('tanggal_pengajuan')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
-            <div>
-                <x-input-label for="tim_pengaju" value="Tim yang mengajukan SPJ" />
-                <x-text-input id="tim_pengaju" name="tim_pengaju" value="{{ old('tim_pengaju', $pengajuan->tim_pengaju) }}" required />
-                @error('tim_pengaju')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
-            </div>
+            {{-- Tim pengaju mengikuti divisi akun, bukan diisi manual. Barisnya
+                 disembunyikan bila tidak ada nilai yang bisa ditampilkan; nilai
+                 lama pengajuan tetap dipertahankan di sisi server. --}}
+            @php($timPengaju = $divisiPengaju ?? $pengajuan->tim_pengaju)
+            @if($timPengaju)
+                <div>
+                    <x-input-label value="Tim yang mengajukan SPJ" />
+                    <p class="mt-1 font-semibold text-ui-text">{{ $timPengaju }}</p>
+                    <p class="mt-1 text-xs text-ui-muted">Diambil otomatis dari divisi akun Anda.</p>
+                </div>
+            @endif
 
             <div>
                 <x-input-label for="bulan_kegiatan" value="Tanggal Kegiatan" />
@@ -40,7 +46,7 @@
 
             <div>
                 <x-input-label for="total_nominal" value="Total Nominal" />
-                <x-text-input id="total_nominal" name="total_nominal" type="number" min="0" step="0.01" value="{{ old('total_nominal', $pengajuan->total_nominal) }}" required />
+                <x-input-rupiah id="total_nominal" name="total_nominal" :value="old('total_nominal', $pengajuan->total_nominal)" required />
                 @error('total_nominal')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
@@ -52,7 +58,7 @@
 
             <div class="flex gap-3">
                 <x-primary-button>Kirim Perbaikan</x-primary-button>
-                <a href="{{ route('pegawai.pengajuan.show', $pengajuan) }}" class="rounded-lg border border-ui-border px-4 py-2 text-sm font-medium">Batal</a>
+                <a href="{{ route('pengajuan.show', $pengajuan) }}" class="rounded-lg border border-ui-border px-4 py-2 text-sm font-medium">Batal</a>
             </div>
         </form>
     </div>

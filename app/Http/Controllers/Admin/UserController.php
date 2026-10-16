@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Divisi;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -16,7 +17,7 @@ class UserController extends Controller
 {
     public function index(): View
     {
-        $users = User::with('role')->orderBy('nama_lengkap')->paginate(15);
+        $users = User::with(['role', 'divisi'])->orderBy('nama_lengkap')->paginate(15);
 
         return view('admin.users.index', compact('users'));
     }
@@ -25,8 +26,9 @@ class UserController extends Controller
     {
         $roles = Role::orderBy('nama_role')->get();
         $verifikatorRoleId = $roles->firstWhere('nama_role', 'verifikator')?->id_role;
+        $divisiList = Divisi::orderBy('nama_divisi')->get();
 
-        return view('admin.users.create', compact('roles', 'verifikatorRoleId'));
+        return view('admin.users.create', compact('roles', 'verifikatorRoleId', 'divisiList'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -49,8 +51,9 @@ class UserController extends Controller
     {
         $roles = Role::orderBy('nama_role')->get();
         $verifikatorRoleId = $roles->firstWhere('nama_role', 'verifikator')?->id_role;
+        $divisiList = Divisi::orderBy('nama_divisi')->get();
 
-        return view('admin.users.edit', compact('user', 'roles', 'verifikatorRoleId'));
+        return view('admin.users.edit', compact('user', 'roles', 'verifikatorRoleId', 'divisiList'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -101,6 +104,9 @@ class UserController extends Controller
             ],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
             'id_role' => ['required', 'exists:roles,id_role'],
+            // Divisi bersifat opsional: pilihan kosong diubah jadi null oleh
+            // ConvertEmptyStringsToNull, dan 'nullable' membuat null tetap sah.
+            'id_divisi' => ['nullable', 'exists:divisi,id_divisi'],
             'status_aktif' => ['nullable', 'boolean'],
             // Hanya relevan untuk role verifikator. 'nullable' wajib ada: middleware
             // ConvertEmptyStringsToNull mengubah input kosong jadi null, dan tanpa

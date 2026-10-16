@@ -17,7 +17,7 @@
             </p>
         </div>
 
-        <a href="{{ route('pegawai.pengajuan.create') }}"
+        <a href="{{ route('pengajuan.create') }}"
             class="inline-flex items-center justify-center gap-2 rounded-lg bg-pov-pengajuan px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -164,7 +164,7 @@
                     </p>
                 </div>
 
-                <a href="{{ route('pegawai.pengajuan.index') }}"
+                <a href="{{ route('pengajuan.index') }}"
                     class="text-sm font-semibold text-pov-pengajuan hover:underline">
                     Lihat semua
                 </a>
@@ -175,7 +175,7 @@
         <div class="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
 
             @forelse($statusCounts as $status)
-                <a href="{{ route('pegawai.pengajuan.index', ['status' => $status->kode_status]) }}"
+                <a href="{{ route('pengajuan.index', ['status' => $status->kode_status]) }}"
                     class="group flex items-center justify-between rounded-xl border border-ui-border p-4 transition hover:border-pov-pengajuan/40 hover:bg-ui-page">
                     <div>
                         <x-status-badge :kode="$status->kode_status" :label="$status->nama_status" />
@@ -209,6 +209,78 @@
     </div>
 
 
+    {{-- Progres pengajuan rekan satu divisi.
+         Hanya dirender bila akun ini punya divisi; pengajuan milik sendiri sudah
+         tampil di panel atas sehingga dikecualikan dari daftar ini. --}}
+    @if($divisi)
+        <div class="mt-6 rounded-xl border border-ui-border bg-ui-card shadow-sm">
+
+            <div class="border-b border-ui-border px-5 py-4">
+                <h3 class="font-semibold text-ui-text">
+                    Pengajuan Divisi {{ $divisi->nama_divisi }}
+                </h3>
+
+                <p class="mt-1 text-sm text-ui-muted">
+                    Progres pengajuan rekan satu divisi, di luar pengajuan Anda sendiri.
+                </p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-ui-border text-xs font-semibold uppercase text-ui-muted">
+                            <th class="px-5 py-3">No. Pengajuan</th>
+                            <th class="px-5 py-3">Pemohon</th>
+                            <th class="px-5 py-3">Perihal</th>
+                            <th class="px-5 py-3">Nilai Pengajuan</th>
+                            <th class="px-5 py-3">Tanggal</th>
+                            <th class="px-5 py-3">Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-ui-border text-sm">
+                        @forelse($pengajuanDivisi as $item)
+                            <tr class="transition hover:bg-ui-page/50">
+                                <td class="px-5 py-4 font-medium text-ui-text">
+                                    {{ $item->no_pengajuan }}
+                                </td>
+
+                                <td class="px-5 py-4 text-ui-text">
+                                    {{ $item->user?->nama_lengkap ?? '—' }}
+                                </td>
+
+                                <td class="px-5 py-4 text-ui-muted">
+                                    {{ $item->perihal }}
+                                </td>
+
+                                <td class="px-5 py-4 font-medium text-ui-text">
+                                    Rp {{ number_format((float) $item->total_nominal, 0, ',', '.') }}
+                                </td>
+
+                                <td class="px-5 py-4 text-ui-text">
+                                    {{ \Carbon\Carbon::parse($item->tanggal_pengajuan)->format('d/m/Y') }}
+                                </td>
+
+                                <td class="px-5 py-4">
+                                    <x-status-badge :kode="$item->status?->kode_status" :label="$item->status?->nama_status ?? '-'" />
+                                </td>
+                            </tr>
+
+                        @empty
+
+                            <tr>
+                                <td colspan="6" class="px-5 py-8 text-center text-sm text-ui-muted">
+                                    Belum ada pengajuan dari rekan satu divisi.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+
     {{-- Menu cepat --}}
     <div class="mt-6">
 
@@ -226,7 +298,7 @@
         <div class="grid gap-4 md:grid-cols-3">
 
             {{-- Ajukan --}}
-            <a href="{{ route('pegawai.pengajuan.create') }}"
+            <a href="{{ route('pengajuan.create') }}"
                 class="group rounded-xl border border-ui-border bg-ui-card p-5 shadow-sm transition hover:border-pov-pengajuan/40">
                 <div
                     class="flex h-10 w-10 items-center justify-center rounded-lg bg-pov-pengajuan/10 text-pov-pengajuan">
@@ -247,7 +319,7 @@
 
 
             {{-- Daftar --}}
-            <a href="{{ route('pegawai.pengajuan.index') }}"
+            <a href="{{ route('pengajuan.index') }}"
                 class="group rounded-xl border border-ui-border bg-ui-card p-5 shadow-sm transition hover:border-pov-pengajuan/40">
                 <div
                     class="flex h-10 w-10 items-center justify-center rounded-lg bg-pov-pengajuan/10 text-pov-pengajuan">
@@ -268,26 +340,6 @@
             </a>
 
 
-            {{-- Riwayat --}}
-            <a href="{{ route('pegawai.pengajuan.riwayat') }}"
-                class="group rounded-xl border border-ui-border bg-ui-card p-5 shadow-sm transition hover:border-pov-pengajuan/40">
-                <div
-                    class="flex h-10 w-10 items-center justify-center rounded-lg bg-pov-pengajuan/10 text-pov-pengajuan">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-
-                <h4 class="mt-4 font-semibold text-ui-text group-hover:text-pov-pengajuan">
-                    Riwayat Pengajuan
-                </h4>
-
-                <p class="mt-1 text-sm text-ui-muted">
-                    Lihat riwayat pengajuan termasuk yang selesai dan ditolak.
-                </p>
-            </a>
 
         </div>
 

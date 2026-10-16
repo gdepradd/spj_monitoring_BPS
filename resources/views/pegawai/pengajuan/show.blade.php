@@ -50,8 +50,17 @@
 
         $jumlahTermin = $pembayaranLangsung->count() + $pembayaranKonfirmasi->count();
 
+        // Pembayaran terakhir dipakai sebagai penanda waktu entri "Pencairan Selesai".
+        $pembayaranTerakhir = $pengajuan->bendahara
+            ->whereIn('tahap', ['PEMBAYARAN_LANGSUNG', 'KONFIRMASI'])
+            ->sortBy('id_bendahara')
+            ->last();
+
         // Rincian satu termin pembayaran untuk ditampilkan di linimasa.
         $rincianPembayaran = fn ($bayar) => array_filter([
+            'Tgl. Transfer' => $bayar->tgl_transfer
+                ? \Carbon\Carbon::parse($bayar->tgl_transfer)->format('d M Y')
+                : null,
             'Nominal' => $bayar->nominal !== null
                 ? 'Rp ' . number_format((float) $bayar->nominal, 0, ',', '.')
                 : null,
@@ -124,6 +133,11 @@
                                     'PROSES_KONFIRMASI_BENDAHARA',
                                 ]),
 
+                            // Sudah ada uang keluar tapi belum lunas; dibedakan
+                            // dari status "masih menunggu" yang berwarna amber.
+                            'border-sky-200 bg-sky-100 text-sky-700' =>
+                                $pengajuan->status?->kode_status === 'PENCAIRAN_PARSIAL',
+
                             'border-orange-200 bg-orange-100 text-orange-700' =>
                                 $pengajuan->status?->kode_status === 'REVISI',
 
@@ -190,15 +204,6 @@
 
                     <div class="sm:col-span-2">
                         <dt class="text-xs font-medium uppercase text-ui-muted">
-                            Perihal
-                        </dt>
-                        <dd class="mt-1">
-                            {{ $pengajuan->perihal }}
-                        </dd>
-                    </div>
-
-                    <div class="sm:col-span-2">
-                        <dt class="text-xs font-medium uppercase text-ui-muted">
                             Keterangan
                         </dt>
                         <dd class="mt-1 whitespace-pre-line">
@@ -224,7 +229,7 @@
 
                     <a
                         href="{{ route(
-                            'pegawai.pengajuan.edit',
+                            'pengajuan.edit',
                             $pengajuan
                         ) }}"
                         class="mt-6 inline-flex rounded-lg
@@ -523,7 +528,7 @@
                                 !$bendaharaSpp
                             "
                             :waktu="
-                                $bendaharaSpp?->tgl_spp
+                                $bendaharaSpp?->tanggal_proses
                                 ?? $bendaharaSpp?->created_at
                             "
                             :catatan="$bendaharaSpp?->catatan"
@@ -540,7 +545,7 @@
                                 )
                             "
                             :waktu="
-                                $ppk?->tgl_spm
+                                $ppk?->tanggal_proses
                                 ?? $ppk?->created_at
                             "
                             :catatan="$ppk?->catatan"
@@ -557,7 +562,7 @@
                                 )
                             "
                             :waktu="
-                                $ppspm?->tgl_ajukan_kemenkeu
+                                $ppspm?->tanggal_proses
                                 ?? $ppspm?->created_at
                             "
                             :catatan="$ppspm?->catatan"
@@ -575,7 +580,7 @@
                                 "
                                 status="SELESAI"
                                 :aktif="false"
-                                :waktu="$bayar->tgl_transfer ?? $bayar->tanggal_proses ?? $bayar->created_at"
+                                :waktu="$bayar->tanggal_proses ?? $bayar->created_at"
                                 :rincian="$rincianPembayaran($bayar)"
                                 :catatan="$bayar->catatan"
                             />
@@ -625,7 +630,7 @@
                                 "
                                 status="SELESAI"
                                 :aktif="false"
-                                :waktu="$bayar->tgl_transfer ?? $bayar->tanggal_proses ?? $bayar->created_at"
+                                :waktu="$bayar->tanggal_proses ?? $bayar->created_at"
                                 :rincian="$rincianPembayaran($bayar)"
                                 :catatan="$bayar->catatan"
                             />
@@ -673,10 +678,15 @@
                                 'SELESAI'
                             )
                         "
-                        :waktu="$pengajuan->tanggal_selesai"
+                        {{-- Jam diambil dari tanggal_proses pembayaran terakhir; tanggal_selesai
+                             bersumber dari kolom DATE sehingga jamnya selalu 00:00. --}}
+                        :waktu="$pembayaranTerakhir?->tanggal_proses ?? $pembayaranTerakhir?->created_at"
                         :rincian="
                             $pengajuan->status?->kode_status === 'SELESAI'
                                 ? array_filter([
+                                    'Tanggal Selesai' => $pengajuan->tanggal_selesai
+                                        ? \Carbon\Carbon::parse($pengajuan->tanggal_selesai)->format('d M Y')
+                                        : null,
                                     'Total Dibayarkan' => 'Rp ' . number_format($pengajuan->total_dibayar, 0, ',', '.'),
                                     'Jumlah Termin' => $jumlahTermin > 1
                                         ? $jumlahTermin . ' kali pembayaran'

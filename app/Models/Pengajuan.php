@@ -124,6 +124,28 @@ class Pengajuan extends Model
     }
 
     /**
+     * Nomor SPP yang diterbitkan Bendahara untuk pengajuan ini.
+     * Dipakai PPK dan PPSPM agar tidak perlu mencari sendiri ke tabel bendahara.
+     */
+    public function getNoSppAttribute(): ?string
+    {
+        $spp = $this->relationLoaded('bendahara')
+            ? $this->bendahara->where('tahap', 'PENGAJUAN_SPP')->sortByDesc('id_bendahara')->first()
+            : $this->bendahara()->where('tahap', 'PENGAJUAN_SPP')->orderByDesc('id_bendahara')->first();
+
+        return $spp?->no_spp;
+    }
+
+    public function getTglSppAttribute()
+    {
+        $spp = $this->relationLoaded('bendahara')
+            ? $this->bendahara->where('tahap', 'PENGAJUAN_SPP')->sortByDesc('id_bendahara')->first()
+            : $this->bendahara()->where('tahap', 'PENGAJUAN_SPP')->orderByDesc('id_bendahara')->first();
+
+        return $spp?->tgl_spp;
+    }
+
+    /**
      * Tanggal pengajuan benar-benar selesai, yaitu saat pembayaran terakhir dicatat.
      * Bernilai null selama pengajuan belum berstatus SELESAI.
      */
@@ -225,15 +247,12 @@ class Pengajuan extends Model
             'Cara Bayar' => $tunai ? 'Tunai' : 'Transfer',
             ($tunai ? 'Tgl. Pencairan' : 'Tgl. Transfer') => $log->tgl_transfer,
             'No. Kwitansi' => $log->no_kwitansi,
-            // Kolom lama hanya tampil bila datanya memang ada.
-            'Nama Bank' => $log->nama_bank,
-            'No. Rekening' => $log->no_rekening,
         ];
 
         return [
             'judul'   => $label,
             'aktor'   => $this->namaAktor($log, 'Bendahara'),
-            'waktu'   => $log->tgl_transfer ?? $log->tanggal_proses ?? $log->created_at,
+            'waktu'   => $log->tanggal_proses ?? $log->created_at,
             'catatan' => $log->catatan,
             'status'  => 'Selesai',
             'dokumen' => array_filter($dokumen),
@@ -396,7 +415,7 @@ class Pengajuan extends Model
         $timeline->push([
             'judul'   => 'Pengajuan SPP',
             'aktor'   => $this->namaAktor($logSpp, 'Bendahara'),
-            'waktu'   => $logSpp ? ($logSpp->tgl_spp ?? $logSpp->tanggal_proses ?? $logSpp->created_at) : null,
+            'waktu'   => $logSpp ? ($logSpp->tanggal_proses ?? $logSpp->created_at) : null,
             'catatan' => $logSpp?->catatan,
             'status'  => $logSpp ? 'Selesai' : 'Sedang Diproses',
             'dokumen' => array_filter([
@@ -410,7 +429,7 @@ class Pengajuan extends Model
         $timeline->push([
             'judul'   => 'Persetujuan SPP oleh PPK',
             'aktor'   => $this->namaAktor($logPpk, 'PPK'),
-            'waktu'   => $logPpk ? ($logPpk->tgl_spm ?? $logPpk->tanggal_proses ?? $logPpk->created_at) : null,
+            'waktu'   => $logPpk ? ($logPpk->tanggal_proses ?? $logPpk->created_at) : null,
             'catatan' => $logPpk?->catatan,
             'status'  => $logPpk ? $this->labelStatusPencairan($logPpk->id_status) : ($logSpp ? 'Sedang Diproses' : 'Belum Dimulai'),
             'dokumen' => array_filter([
@@ -424,7 +443,7 @@ class Pengajuan extends Model
         $timeline->push([
             'judul'   => 'Pengajuan ke Kemenkeu (PPSPM)',
             'aktor'   => $this->namaAktor($logPpspm, 'PPSPM'),
-            'waktu'   => $logPpspm ? ($logPpspm->tgl_ajukan_kemenkeu ?? $logPpspm->tanggal_proses ?? $logPpspm->created_at) : null,
+            'waktu'   => $logPpspm ? ($logPpspm->tanggal_proses ?? $logPpspm->created_at) : null,
             'catatan' => $logPpspm?->catatan,
             'status'  => $logPpspm ? $this->labelStatusPencairan($logPpspm->id_status) : ($logPpk ? 'Sedang Diproses' : 'Belum Dimulai'),
             'dokumen' => array_filter([

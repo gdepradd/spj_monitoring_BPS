@@ -5,6 +5,9 @@
 
         $statusClass = match (true) {
             $kodeStatus === 'SELESAI' => 'border-green-200 bg-green-100 text-green-700',
+            // Sudah ada uang keluar tapi belum lunas; dibedakan dari amber
+            // yang berarti masih menunggu diproses.
+            $kodeStatus === 'PENCAIRAN_PARSIAL' => 'border-sky-200 bg-sky-100 text-sky-700',
             $kodeStatus === 'REVISI' => 'border-orange-200 bg-orange-100 text-orange-700',
             $kodeStatus === 'DITOLAK' => 'border-red-200 bg-red-100 text-red-700',
             default => 'border-amber-200 bg-amber-100 text-amber-700',
@@ -18,7 +21,7 @@
             'bendahara' => route('bendahara.riwayat'),
             'ppk' => route('ppk.riwayat'),
             'ppspm' => route('ppspm.riwayat'),
-            'pegawai' => route('pegawai.pengajuan.riwayat'),
+            'pegawai' => route('pengajuan.index'),
             'admin' => route('admin.monitoring.pengajuan'),
             default => url()->previous(),
         };
@@ -219,16 +222,8 @@
                                 </div>
                             @else
                                 <div>
-                                    <dt class="text-xs font-medium uppercase text-ui-muted">Nama Bank</dt>
-                                    <dd class="mt-1">{{ $transfer->nama_bank ?? '-' }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium uppercase text-ui-muted">No. Rekening</dt>
-                                    <dd class="mt-1">{{ $transfer->no_rekening ?? '-' }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium uppercase text-ui-muted">Atas Nama</dt>
-                                    <dd class="mt-1">{{ $transfer->atas_nama_rekening ?? '-' }}</dd>
+                                    <dt class="text-xs font-medium uppercase text-ui-muted">Tanggal Transfer</dt>
+                                    <dd class="mt-1">{{ $transfer->tgl_transfer ? \Carbon\Carbon::parse($transfer->tgl_transfer)->format('d M Y') : '-' }}</dd>
                                 </div>
                             @endif
                         </dl>

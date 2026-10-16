@@ -28,6 +28,17 @@
         </select>
         @error('id_role')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
+    <div>
+        <x-input-label for="id_divisi" value="Divisi (opsional)" />
+        <select id="id_divisi" name="id_divisi" class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card">
+            <option value="">— Tanpa divisi —</option>
+            @foreach($divisiList as $divisi)
+                <option value="{{ $divisi->id_divisi }}" @selected((string) old('id_divisi', $user->id_divisi ?? '') === (string) $divisi->id_divisi)>{{ $divisi->nama_divisi }}</option>
+            @endforeach
+        </select>
+        <p class="mt-1 text-xs text-ui-muted">Pegawai dalam satu divisi dapat saling melihat progres pengajuan.</p>
+        @error('id_divisi')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+    </div>
     {{-- Hanya relevan untuk role verifikator: disembunyikan sekaligus di-disable untuk
          role lain supaya field ini tidak ikut terkirim saat form disubmit. --}}
     <div x-show="isVerifikator" @style(['display: none' => ! $roleAwalVerifikator])>

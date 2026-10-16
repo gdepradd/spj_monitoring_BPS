@@ -84,7 +84,8 @@ class PpkController extends Controller
     public function riwayat()
     {
         $riwayat = Ppk::where('id_user', auth()->id())
-            ->with(['pengajuan.user', 'pengajuan.status'])
+            // bendahara ikut dimuat supaya nomor SPP dapat ditampilkan tanpa query per baris.
+            ->with(['pengajuan.user', 'pengajuan.status', 'pengajuan.bendahara'])
             ->orderByDesc('id_ppk')
             ->paginate(15);
         return view('ppk.riwayat', compact('riwayat'));

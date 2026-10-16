@@ -28,6 +28,7 @@ class User extends Authenticatable
         'email',
         'password',
         'id_role',
+        'id_divisi',
         'status_aktif',
         'urutan_verifikator',
     ];
@@ -44,6 +45,11 @@ class User extends Authenticatable
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'id_role', 'id_role');
+    }
+
+    public function divisi(): BelongsTo
+    {
+        return $this->belongsTo(Divisi::class, 'id_divisi', 'id_divisi');
     }
 
     public function pengajuan(): HasMany
