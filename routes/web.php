@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\DivisiController;
+use App\Http\Controllers\Admin\TimController;
 use App\Http\Controllers\Admin\MonitoringController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Pegawai\DashboardController as PegawaiDashboardController;
@@ -72,7 +72,7 @@ Route::get('/', function () {
     });
 });
 
-// DASHBOARD PEGAWAI — tetap khusus pegawai karena memuat panel pengajuan satu divisi.
+// DASHBOARD PEGAWAI — tetap khusus pegawai karena memuat panel pengajuan satu tim.
 // Role lain memakai dashboard perannya masing-masing.
 Route::middleware(['auth', 'role:pegawai'])
     ->prefix('pegawai')
@@ -113,7 +113,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/monitoring/pengajuan/{id}', [MonitoringController::class, 'show'])->name('monitoring.show');
 
         Route::resource('users', UserController::class)->except('show');
-        Route::resource('divisi', DivisiController::class)->except('show')->parameters(['divisi' => 'divisi']);
+        Route::resource('tim', TimController::class)->except('show')->parameters(['tim' => 'tim']);
     });
 Route::middleware(['auth', 'role:verifikator'])->prefix('verifikator')->name('verifikator.')->group(function () {
     Route::redirect('/dashboard', '/verifikator/pengajuan')->name('dashboard');

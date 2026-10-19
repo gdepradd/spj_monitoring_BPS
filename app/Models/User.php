@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -28,7 +29,6 @@ class User extends Authenticatable
         'email',
         'password',
         'id_role',
-        'id_divisi',
         'status_aktif',
         'urutan_verifikator',
     ];
@@ -47,9 +47,35 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'id_role', 'id_role');
     }
 
-    public function divisi(): BelongsTo
+    /**
+     * Tim yang diikuti akun ini. Satu orang boleh masuk beberapa tim, jadi
+     * keanggotaannya ada di tabel pivot tim_user.
+     */
+    public function tim(): BelongsToMany
     {
-        return $this->belongsTo(Divisi::class, 'id_divisi', 'id_divisi');
+        return $this->belongsToMany(Tim::class, 'tim_user', 'id_user', 'id_tim')
+            ->orderBy('nama_tim');
+    }
+
+    /**
+     * Daftar id tim yang diikuti, dipakai untuk menyaring pengajuan rekan satu tim.
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    public function idTim(): \Illuminate\Support\Collection
+    {
+        return $this->tim->pluck('id_tim');
+    }
+
+    /**
+     * Nama tim dirangkai jadi satu baris, mis. "Produksi, IPDS".
+     * Mengembalikan null bila akun ini belum dimasukkan ke tim mana pun.
+     */
+    public function namaTim(): ?string
+    {
+        $nama = $this->tim->pluck('nama_tim');
+
+        return $nama->isEmpty() ? null : $nama->implode(', ');
     }
 
     public function pengajuan(): HasMany

@@ -19,6 +19,11 @@
                     <!-- <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p> -->
                     <p class="text-sm text-gray-700"><span class="font-bold">Bulan Kegiatan:</span> {{ $pengajuan->bulan_kegiatan ?? '-' }}</p>
                     <p class="text-sm text-gray-700"><span class="font-bold">Nama Penerima:</span> {{ $pengajuan->nama_penerima ?? '-' }}</p>
+
+                    {{-- Daftar penerima dari pengaju; tidak dirender bila kosong. --}}
+                    <div class="mt-3">
+                        <x-tabel-penerima :penerima="$pengajuan->penerima" :total="$pengajuan->total_nominal" ringkas />
+                    </div>
                     <p><strong>Metode Pembayaran:</strong> <span class="bg-gray-200 px-2 py-1 rounded">{{ $pengajuan->metode_pembayaran }}</span></p>
                     <p class="text-lg font-bold text-purple-600 mt-2">Total Nominal: Rp {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}</p>
                 </div>

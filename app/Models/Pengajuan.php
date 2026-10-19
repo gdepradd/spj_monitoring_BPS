@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pengajuan extends Model
 {
@@ -16,6 +17,8 @@ class Pengajuan extends Model
     protected $fillable = [
         'no_pengajuan',
         'id_user',
+        // Tim yang mengajukan. Dipilih pengaju bila ia tergabung di beberapa tim.
+        'id_tim',
         'tanggal_pengajuan',
         // Diturunkan otomatis dari keterangan oleh Pegawai\PengajuanController.
         'perihal',
@@ -44,6 +47,26 @@ class Pengajuan extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_user', 'id_user');
+    }
+
+    /**
+     * Tim yang mengajukan SPJ ini. Kolom tim_pengaju menyimpan namanya saat
+     * pengajuan dibuat, jadi riwayat lama tetap terbaca walau tim dihapus.
+     */
+    public function tim(): BelongsTo
+    {
+        return $this->belongsTo(Tim::class, 'id_tim', 'id_tim');
+    }
+
+    /**
+     * Daftar penerima yang diusulkan pengaju, urut sesuai nomor di daftarnya.
+     * Dipakai Bendahara sebagai isian awal form pencairan.
+     */
+    public function penerima(): HasMany
+    {
+        return $this->hasMany(PenerimaPengajuan::class, 'id_pengajuan', 'id_pengajuan')
+            ->orderBy('urutan')
+            ->orderBy('id_penerima_pengajuan');
     }
 
     public function status(): BelongsTo
@@ -94,6 +117,62 @@ class Pengajuan extends Model
         }
 
         return (float) $this->pembayaran()->sum('nominal');
+    }
+
+    /**
+     * Total nominal pada daftar penerima yang diusulkan pengaju.
+     */
+    public function getTotalUsulanPenerimaAttribute(): float
+    {
+        return (float) ($this->relationLoaded('penerima')
+            ? $this->penerima->sum('nominal')
+            : $this->penerima()->sum('nominal'));
+    }
+
+    /**
+     * Usulan penerima yang nominalnya belum habis dibayarkan.
+     *
+     * Pencairan bertahap membayar sebagian nama lebih dulu. Agar Bendahara
+     * tidak membayar orang yang sama dua kali, pembayaran yang sudah tercatat
+     * dikurangkan dari usulan — dijumlahkan per nama, karena satu nama bisa
+     * dibayar beberapa kali dalam termin yang berbeda.
+     *
+     * @return array<int, array{nama_penerima: string, nominal: float}>
+     */
+    public function usulanPenerimaBelumDibayar(): array
+    {
+        $dibayarPerNama = $this->pembayaran()
+            ->selectRaw('nama_penerima, sum(nominal) as total')
+            ->groupBy('nama_penerima')
+            ->pluck('total', 'nama_penerima')
+            ->map(fn ($total) => (float) $total);
+
+        // Jatah terbayar dipakai habis baris demi baris, sehingga satu nama yang
+        // muncul dua kali di daftar tidak dihitung lunas dua kali.
+        $jatah = $dibayarPerNama->all();
+        $hasil = [];
+
+        foreach ($this->penerima as $baris) {
+            $nama = (string) $baris->nama_penerima;
+            $nominal = (float) $baris->nominal;
+
+            $terpakai = min($nominal, (float) ($jatah[$nama] ?? 0));
+            $jatah[$nama] = (float) ($jatah[$nama] ?? 0) - $terpakai;
+
+            $sisa = $nominal - $terpakai;
+
+            // Nama yang sudah lunas tidak perlu muncul lagi di form pembayaran.
+            if ($sisa <= 0) {
+                continue;
+            }
+
+            $hasil[] = [
+                'nama_penerima' => $nama,
+                'nominal' => $sisa,
+            ];
+        }
+
+        return $hasil;
     }
 
     public function getSisaPembayaranAttribute(): float

@@ -5,18 +5,41 @@
     nomor kwitansi berlaku sama untuk seluruh penerima pada pembayaran ini,
     jadi tiap baris cukup berisi nama penerima dan nominalnya.
 
-    - $batas : nominal maksimum yang boleh dibayarkan (total pengajuan / sisa)
-    - $warna : aksen mengikuti form induk, 'green' (UP/TUP) atau 'blue' (LS)
+    - $batas  : nominal maksimum yang boleh dibayarkan (total pengajuan / sisa)
+    - $warna  : aksen mengikuti form induk, 'green' (UP/TUP) atau 'blue' (LS)
+    - $usulan : daftar penerima dari pengaju, dipakai sebagai isian awal sehingga
+                Bendahara tidak perlu mengetik ulang nama dan nominalnya
 
     Kelas warna ditulis utuh, bukan dirangkai, agar ikut terkompilasi Tailwind.
 --}}
-@props(['batas' => 0, 'warna' => 'blue'])
+@props(['batas' => 0, 'warna' => 'blue', 'usulan' => []])
 
 @php
     $lama = old('penerima');
-    $awal = is_array($lama) && $lama !== []
-        ? array_values($lama)
-        : [['nama_penerima' => '', 'nominal' => '']];
+
+    // Urutan sumber isian awal: kiriman form yang gagal validasi, lalu usulan
+    // pengaju, lalu satu baris kosong. Baris tanpa nama atau bernominal nol
+    // dibuang; pemotongan terhadap $batas tetap dilakukan di sisi server
+    // (PencairanService::susunPenerima) agar tidak bisa dilewati dari peramban.
+    $daftarUsulan = collect($usulan)
+        ->map(fn ($baris) => [
+            'nama_penerima' => (string) (is_array($baris) ? ($baris['nama_penerima'] ?? '') : $baris->nama_penerima),
+            'nominal' => (string) (int) round((float) (is_array($baris) ? ($baris['nominal'] ?? 0) : $baris->nominal)),
+        ])
+        ->filter(fn ($baris) => $baris['nama_penerima'] !== '' && (float) $baris['nominal'] > 0)
+        ->values();
+
+    if (is_array($lama) && $lama !== []) {
+        $awal = array_values($lama);
+    } elseif ($daftarUsulan->isNotEmpty()) {
+        $awal = $daftarUsulan->all();
+    } else {
+        $awal = [['nama_penerima' => '', 'nominal' => '']];
+    }
+
+    $totalUsulan = (float) $daftarUsulan->sum(fn ($baris) => (float) $baris['nominal']);
+
+    $gayaCatatan = $warna === 'green' ? 'text-green-800' : 'text-blue-800';
 
     $gaya = $warna === 'green'
         ? [
@@ -39,6 +62,10 @@
         },
         hapus(i) {
             if (this.penerima.length > 1) this.penerima.splice(i, 1);
+        },
+        /* Buang seluruh usulan dan mulai dari satu baris kosong. */
+        kosongkan() {
+            this.penerima = [{ nama_penerima: '', nominal: '' }];
         },
         get total() {
             return this.penerima.reduce((jumlah, baris) => jumlah + (parseFloat(baris.nominal) || 0), 0);
@@ -66,11 +93,27 @@
 
     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p class="text-sm font-semibold text-gray-800">Daftar Penerima</p>
-        <button type="button" @click="tambah()"
-                class="rounded-lg border px-3 py-1 text-xs font-semibold {{ $gaya['tombol'] }}">
-            + Tambah Penerima
-        </button>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" @click="tambah()"
+                    class="rounded-lg border px-3 py-1 text-xs font-semibold {{ $gaya['tombol'] }}">
+                + Tambah Penerima
+            </button>
+            <button type="button" @click="kosongkan()"
+                    class="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+                Kosongkan
+            </button>
+        </div>
     </div>
+
+    {{-- Daftar sudah terisi dari usulan pengaju. Dikatakan terang-terangan supaya
+         Bendahara tahu angka ini bukan ketikannya sendiri dan perlu diperiksa. --}}
+    @if($daftarUsulan->isNotEmpty() && ! (is_array($lama) && $lama !== []))
+        <p class="mb-3 rounded-lg bg-gray-100 px-3 py-2 text-xs {{ $gayaCatatan }}">
+            Terisi otomatis dari daftar penerima yang diajukan pemohon
+            ({{ $daftarUsulan->count() }} penerima, Rp {{ number_format($totalUsulan, 0, ',', '.') }}).
+            Periksa dan sesuaikan bila perlu sebelum menyimpan.
+        </p>
+    @endif
 
     <template x-for="(baris, i) in penerima" :key="i">
         <div class="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3">

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Divisi;
+use App\Models\Tim;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -17,7 +17,7 @@ class UserController extends Controller
 {
     public function index(): View
     {
-        $users = User::with(['role', 'divisi'])->orderBy('nama_lengkap')->paginate(15);
+        $users = User::with(['role', 'tim'])->orderBy('nama_lengkap')->paginate(15);
 
         return view('admin.users.index', compact('users'));
     }
@@ -26,14 +26,17 @@ class UserController extends Controller
     {
         $roles = Role::orderBy('nama_role')->get();
         $verifikatorRoleId = $roles->firstWhere('nama_role', 'verifikator')?->id_role;
-        $divisiList = Divisi::orderBy('nama_divisi')->get();
+        $timList = Tim::orderBy('nama_tim')->get();
 
-        return view('admin.users.create', compact('roles', 'verifikatorRoleId', 'divisiList'));
+        return view('admin.users.create', compact('roles', 'verifikatorRoleId', 'timList'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validateUser($request);
+        // Keanggotaan tim tersimpan di tabel pivot, bukan kolom users,
+        // jadi dikeluarkan dari data yang dipakai User::create().
+        $tim = $this->timTerpilih($validated);
         $validated['password'] = Hash::make($validated['password']);
         $validated['status_aktif'] = $request->boolean('status_aktif');
 
@@ -42,7 +45,7 @@ class UserController extends Controller
             ? $validated['urutan_verifikator']
             : null;
 
-        User::create($validated);
+        User::create($validated)->tim()->sync($tim);
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil dibuat.');
     }
@@ -51,14 +54,16 @@ class UserController extends Controller
     {
         $roles = Role::orderBy('nama_role')->get();
         $verifikatorRoleId = $roles->firstWhere('nama_role', 'verifikator')?->id_role;
-        $divisiList = Divisi::orderBy('nama_divisi')->get();
+        $timList = Tim::orderBy('nama_tim')->get();
+        $user->load('tim');
 
-        return view('admin.users.edit', compact('user', 'roles', 'verifikatorRoleId', 'divisiList'));
+        return view('admin.users.edit', compact('user', 'roles', 'verifikatorRoleId', 'timList'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $this->validateUser($request, $user);
+        $tim = $this->timTerpilih($validated);
 
         if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
@@ -73,6 +78,8 @@ class UserController extends Controller
             : null;
 
         $user->update($validated);
+        // sync() sekaligus mengeluarkan user dari tim yang centangnya dilepas.
+        $user->tim()->sync($tim);
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil diperbarui.');
     }
@@ -104,9 +111,10 @@ class UserController extends Controller
             ],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
             'id_role' => ['required', 'exists:roles,id_role'],
-            // Divisi bersifat opsional: pilihan kosong diubah jadi null oleh
-            // ConvertEmptyStringsToNull, dan 'nullable' membuat null tetap sah.
-            'id_divisi' => ['nullable', 'exists:divisi,id_divisi'],
+            // Tim bersifat opsional dan boleh lebih dari satu. Tidak ada centang
+            // sama sekali berarti user tidak tergabung di tim mana pun.
+            'tim' => ['nullable', 'array'],
+            'tim.*' => ['integer', 'exists:tim,id_tim'],
             'status_aktif' => ['nullable', 'boolean'],
             // Hanya relevan untuk role verifikator. 'nullable' wajib ada: middleware
             // ConvertEmptyStringsToNull mengubah input kosong jadi null, dan tanpa
@@ -120,5 +128,20 @@ class UserController extends Controller
                 'between:1,3',
             ],
         ]);
+    }
+
+    /**
+     * Ambil pilihan tim dari data tervalidasi, sekaligus mengeluarkannya dari
+     * array supaya tidak ikut diteruskan ke kolom tabel users.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<int, int>
+     */
+    private function timTerpilih(array &$validated): array
+    {
+        $tim = $validated['tim'] ?? [];
+        unset($validated['tim']);
+
+        return array_map('intval', array_unique($tim));
     }
 }

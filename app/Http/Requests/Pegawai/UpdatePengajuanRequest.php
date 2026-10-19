@@ -3,11 +3,12 @@
 namespace App\Http\Requests\Pegawai;
 
 use App\Models\Pengajuan;
-use App\Support\Rupiah;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePengajuanRequest extends FormRequest
 {
+    use AturanPengajuan;
+
     public function authorize(): bool
     {
         // Kepemilikan dan syarat status REVISI diperiksa Gate::authorize('update')
@@ -17,7 +18,7 @@ class UpdatePengajuanRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'tanggal_pengajuan' => ['required', 'date'],
             // Ikut divalidasi karena update() menulis ulang kolom-kolom ini;
             // tanpa input yang sepadan, perbaikan pengajuan akan mengosongkannya.
@@ -26,19 +27,21 @@ class UpdatePengajuanRequest extends FormRequest
             'keterangan' => ['required', 'string', 'max:5000'],
             'total_nominal' => ['required', 'numeric', 'min:0', 'max:9999999999999.99'],
             'catatan_pengaju' => ['nullable', 'string', 'max:5000'],
-        ];
+        ], $this->aturanTim(), $this->aturanPenerima());
     }
 
-    /**
-     * Angka rupiah berpemisah ribuan dinormalkan sebelum divalidasi.
-     * Lihat App\Support\Rupiah::keAngka() untuk alasannya.
-     */
+    public function messages(): array
+    {
+        return $this->pesanPenerima();
+    }
+
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $this->periksaTotalPenerima($validator);
+    }
+
     protected function prepareForValidation(): void
     {
-        if ($this->has('total_nominal')) {
-            $this->merge([
-                'total_nominal' => Rupiah::keAngka($this->input('total_nominal')),
-            ]);
-        }
+        $this->normalkanRupiah();
     }
 }

@@ -1,3 +1,14 @@
+@php
+    // Usulan penerima dari pemohon dipakai sebagai isian awal form pencairan.
+    // Pada pembayaran lanjutan, nama yang sudah lunas dikeluarkan supaya tidak
+    // terbayar dua kali.
+    $usulanBelumDibayar = $pengajuan->usulanPenerimaBelumDibayar();
+
+    // Adanya daftar penerima berarti uang ini memang dibagi ke beberapa orang,
+    // jadi form dibuka pada mode parsial. Pilihan pengguna (old) tetap menang.
+    $jenisAwal = old('jenis_pencairan', $pengajuan->penerima->isNotEmpty() ? 'PARSIAL' : '');
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -21,6 +32,13 @@
                     <!-- <p><strong>Perihal:</strong> {{ $pengajuan->perihal }}</p> -->
                     <p class="text-lg font-bold text-blue-600 mt-2">Total Nominal: Rp {{ number_format($pengajuan->total_nominal, 0, ',', '.') }}</p>
                 </div>
+
+                {{-- Daftar penerima yang diusulkan pengaju. Daftar yang sama dipakai
+                     sebagai isian awal form pencairan di sebelah, jadi Bendahara
+                     cukup memeriksa lalu menyetujui. --}}
+                <div class="mt-4">
+                    <x-tabel-penerima :penerima="$pengajuan->penerima" :total="$pengajuan->total_nominal" ringkas />
+                </div>
             </div>
 
             <!-- Area Form Dinamis -->
@@ -33,7 +51,10 @@
                     <form action="{{ route('bendahara.pengajuan.ajukan', $pengajuan->id_pengajuan) }}" method="POST" onsubmit="konfirmasiKeputusan(event, this)">
                         @csrf
                         <!-- Inisialisasi state Alpine.js di sini agar sinkron -->
-                        <div class="space-y-4" x-data="{ keputusan: '', metode: '', caraBayar: '', jenisPencairan: '' }">
+                        {{-- Pencairan diawali pada PARSIAL bila pemohon sudah mengirim
+                             daftar penerima: daftarnya langsung terlihat dan Bendahara
+                             tinggal memeriksa, bukan mengetik ulang. --}}
+                        <div class="space-y-4" x-data="{ keputusan: '', metode: '', caraBayar: '', jenisPencairan: @js($jenisAwal) }">
                             
                             <!-- Pilih Keputusan -->
                             <div>
@@ -158,7 +179,8 @@
                                     <!-- PARSIAL: boleh dibagi ke beberapa penerima sekaligus -->
                                     <template x-if="jenisPencairan === 'PARSIAL'">
                                         <div>
-                                        <x-penerima-repeater :batas="(float) $pengajuan->total_nominal" warna="green" />
+                                        <x-penerima-repeater :batas="(float) $pengajuan->total_nominal"
+                                                             :usulan="$pengajuan->penerima" warna="green" />
                                         <p class="mt-2 text-xs text-gray-600">
                                             Sisa yang belum dibayar tetap tampil di dashboard untuk dilunasi menyusul.
                                         </p>
@@ -268,7 +290,7 @@
                                      bisa lewat transfer maupun tunai, penuh atau bertahap. --}}
                                 <div x-data="{
                                         caraBayar: '{{ old('cara_bayar', '') }}',
-                                        jenisPencairan: '{{ old('jenis_pencairan', '') }}',
+                                        jenisPencairan: @js($jenisAwal),
                                      }">
 
                                     <div class="mb-4">
@@ -334,7 +356,8 @@
                                     <!-- PARSIAL: boleh dibagi ke beberapa penerima sekaligus -->
                                     <template x-if="jenisPencairan === 'PARSIAL'">
                                         <div class="mb-4">
-                                        <x-penerima-repeater :batas="(float) $pengajuan->total_nominal" warna="blue" />
+                                        <x-penerima-repeater :batas="(float) $pengajuan->total_nominal"
+                                                             :usulan="$pengajuan->penerima" warna="blue" />
                                         <p class="mt-2 text-xs text-gray-600">
                                             Total pengajuan Rp {{ number_format((float) $pengajuan->total_nominal, 0, ',', '.') }}.
                                             Sisanya dibayarkan menyusul dan tetap tampil di dashboard.
@@ -393,7 +416,7 @@
                         @csrf
                         <div class="space-y-4" x-data="{
                                 caraBayar: '{{ old('cara_bayar', '') }}',
-                                jenisPencairan: '{{ old('jenis_pencairan', '') }}',
+                                jenisPencairan: @js($jenisAwal),
                              }">
 
                             <div>
@@ -464,7 +487,8 @@
                             <!-- SEBAGIAN: satu pembayaran boleh dibagi ke beberapa penerima -->
                             <template x-if="jenisPencairan === 'PARSIAL'">
                                 <div>
-                                <x-penerima-repeater :batas="$sisa" warna="blue" />
+                                <x-penerima-repeater :batas="$sisa"
+                                                     :usulan="$usulanBelumDibayar" warna="blue" />
                                 <p class="mt-2 text-xs text-gray-600">Maksimal Rp {{ number_format($sisa, 0, ',', '.') }}.</p>
                             </div>
                             </template>

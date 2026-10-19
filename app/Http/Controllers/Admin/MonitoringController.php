@@ -211,6 +211,8 @@ class MonitoringController extends Controller
             'ppk.user',
             'ppk.statusPencairan',
             'ppspm' => fn ($q) => $q->orderBy('id_ppspm'),
+            // Daftar penerima usulan pengaju, ditampilkan di layar ini.
+            'penerima',
             'ppspm.user',
             'ppspm.statusPencairan',
         ])->findOrFail($id);

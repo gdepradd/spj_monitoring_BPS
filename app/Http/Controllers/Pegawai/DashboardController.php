@@ -47,7 +47,7 @@ class DashboardController extends Controller
             })
             ->count();
 
-        [$divisi, $pengajuanDivisi] = $this->pengajuanSatuDivisi(Auth::user());
+        [$timSaya, $pengajuanTim] = $this->pengajuanSatuTim(Auth::user());
 
         return view('pegawai.dashboard', compact(
             'statusCounts',
@@ -55,34 +55,43 @@ class DashboardController extends Controller
             'aktif',
             'revisi',
             'selesai',
-            'divisi',
-            'pengajuanDivisi'
+            'timSaya',
+            'pengajuanTim'
         ));
     }
 
     /**
-     * Pengajuan rekan satu divisi, untuk panel di bawah ringkasan pengajuan pribadi.
+     * Pengajuan rekan satu tim, untuk panel di bawah ringkasan pengajuan pribadi.
+     *
+     * Satu orang bisa tergabung di beberapa tim, jadi yang ditarik adalah
+     * pengajuan dari seluruh tim yang ia ikuti. Penyaringannya memakai
+     * pengajuan.id_tim — yaitu tim yang dinyatakan pengaju saat membuat SPJ —
+     * bukan keanggotaan pengaju saat ini, supaya pengajuan tidak ikut berpindah
+     * ketika seseorang masuk atau keluar tim di kemudian hari.
      *
      * Pengajuan milik sendiri dikecualikan karena sudah tampil di panel atas, dan
      * pengajuan berstatus DITOLAK ikut ditampilkan agar progres terbaca apa adanya.
-     * User tanpa divisi mendapat koleksi kosong sehingga panelnya tidak dirender.
+     * User tanpa tim mendapat koleksi kosong sehingga panelnya tidak dirender.
      *
-     * @return array{0: ?\App\Models\Divisi, 1: \Illuminate\Support\Collection}
+     * @return array{0: \Illuminate\Database\Eloquent\Collection, 1: \Illuminate\Support\Collection}
      */
-    private function pengajuanSatuDivisi(User $user): array
+    private function pengajuanSatuTim(User $user): array
     {
-        if ($user->id_divisi === null) {
-            return [null, collect()];
+        $user->loadMissing('tim');
+        $idTim = $user->idTim();
+
+        if ($idTim->isEmpty()) {
+            return [$user->tim, collect()];
         }
 
         $pengajuan = Pengajuan::query()
-            ->with(['user:id_user,nama_lengkap', 'status'])
+            ->with(['user:id_user,nama_lengkap', 'status', 'tim:id_tim,nama_tim'])
+            ->whereIn('id_tim', $idTim)
             ->where('id_user', '!=', $user->id_user)
-            ->whereHas('user', fn ($query) => $query->where('id_divisi', $user->id_divisi))
             ->orderByDesc('id_pengajuan')
             ->limit(10)
             ->get();
 
-        return [$user->divisi, $pengajuan];
+        return [$user->tim, $pengajuan];
     }
 }

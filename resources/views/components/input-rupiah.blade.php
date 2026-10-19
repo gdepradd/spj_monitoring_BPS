@@ -66,6 +66,9 @@
             inputmode="numeric"
             autocomplete="off"
             id="{{ $idInput }}"
+            {{-- Penanda agar komponen lain pada form yang sama bisa mengisi kolom
+                 ini, mis. tombol "Pakai total daftar" pada daftar penerima. --}}
+            data-rupiah-tampil="{{ $name }}"
             x-model="tampil"
             x-on:input="ubah($event)"
             @required($required)

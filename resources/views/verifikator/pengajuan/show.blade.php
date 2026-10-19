@@ -138,6 +138,12 @@
                         </dd>
                     </div>    
 
+                    {{-- Daftar penerima dari pengaju, bila SPJ ini dibayarkan ke
+                         beberapa orang. Tidak dirender bila daftarnya kosong. --}}
+                    <div class="sm:col-span-2">
+                        <x-tabel-penerima :penerima="$pengajuan->penerima" :total="$pengajuan->total_nominal" />
+                    </div>
+
                         <div class="sm:col-span-2">
 
                             <dt

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pegawai;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pegawai\StorePengajuanRequest;
 use App\Http\Requests\Pegawai\UpdatePengajuanRequest;
+use App\Models\PenerimaPengajuan;
 use App\Models\Pengajuan;
 use App\Models\StatusPengajuan;
 use App\Models\StatusVerifikasi;
@@ -130,18 +131,50 @@ class PengajuanController extends Controller
     public function create(): View
     {
         return view('pegawai.pengajuan.create', [
-            'divisiPengaju' => $this->divisiPengaju(),
+            'timPengaju' => $this->timPengaju(),
         ]);
     }
 
 
     /**
-     * Nama divisi akun yang sedang login, dipakai sebagai tim pengaju.
-     * Mengembalikan null bila admin belum menetapkan divisi untuk akun ini.
+     * Tim yang diikuti akun yang sedang login.
+     *
+     * Satu orang bisa tergabung di beberapa tim, jadi form harus menanyakan
+     * tim mana yang mengajukan. Koleksi kosong berarti akun ini belum
+     * dimasukkan ke tim mana pun oleh admin — form tetap bisa dipakai, hanya
+     * tanpa tim pengaju.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tim>
      */
-    private function divisiPengaju(): ?string
+    private function timPengaju()
     {
-        return auth()->user()?->divisi?->nama_divisi;
+        $user = auth()->user();
+        $user?->loadMissing('tim');
+
+        return $user?->tim ?? collect();
+    }
+
+
+    /**
+     * Tim yang dipakai sebagai pengaju untuk satu kiriman form.
+     *
+     * Nilai dari form sudah dipastikan milik akun ini oleh form request, jadi
+     * di sini cukup dicocokkan ke koleksi tim yang diikuti. Bila akun hanya
+     * punya satu tim, timnya dipakai tanpa perlu dikirim dari form.
+     *
+     * @return \App\Models\Tim|null
+     */
+    private function timTerpilih(?string $idTim)
+    {
+        $tim = $this->timPengaju();
+
+        if ($tim->count() === 1) {
+            return $tim->first();
+        }
+
+        return $idTim === null
+            ? null
+            : $tim->firstWhere('id_tim', (int) $idTim);
     }
 
 
@@ -174,7 +207,9 @@ class PengajuanController extends Controller
             ->where('kode_status', $kodeStatusAwal)
             ->firstOrFail();
 
-        $pengajuan = DB::transaction(function () use ($request, $statusAwal, $lewatiTahap1, $pengaju) {
+        $tim = $this->timTerpilih($request->input('id_tim'));
+
+        $pengajuan = DB::transaction(function () use ($request, $statusAwal, $lewatiTahap1, $pengaju, $tim) {
             $pengajuan = Pengajuan::create([
                 'no_pengajuan' => $this->generateNoPengajuan(
                     \Carbon\Carbon::parse($request->tanggal_pengajuan)->format('Ymd')
@@ -186,11 +221,16 @@ class PengajuanController extends Controller
                 'total_nominal' => $request->total_nominal,
                 'id_status' => $statusAwal->id_status,
                 'bulan_kegiatan' => $request->bulan_kegiatan,
-                // Bukan dari input: tim pengaju selalu mengikuti divisi akun.
-                'tim_pengaju' => $this->divisiPengaju(),
+                // Tim pengaju dicatat dua kali dengan sengaja: id_tim untuk
+                // menyaring pengajuan rekan satu tim, dan tim_pengaju sebagai
+                // cuplikan nama agar dokumen lama tidak berubah bila tim diganti nama.
+                'id_tim' => $tim?->id_tim,
+                'tim_pengaju' => $tim?->nama_tim,
                 'nama_penerima' => $request->nama_penerima,
                 'catatan_pengaju' => $request->catatan_pengaju,
             ]);
+
+            $this->simpanPenerima($pengajuan, $request->input('penerima', []));
 
             if ($lewatiTahap1) {
                 $statusAcc = StatusVerifikasi::query()
@@ -240,6 +280,10 @@ class PengajuanController extends Controller
         $pengajuan->load([
             'status',
             'pemohon',
+            'tim',
+
+            // Daftar penerima usulan pengaju, ditampilkan apa adanya di detail.
+            'penerima',
 
             /*
             |--------------------------------------------------------------------------
@@ -317,9 +361,11 @@ class PengajuanController extends Controller
 
         Gate::authorize('update', $pengajuan);
 
+        $pengajuan->load('penerima');
+
         return view(
             'pegawai.pengajuan.edit',
-            compact('pengajuan') + ['divisiPengaju' => $this->divisiPengaju()]
+            compact('pengajuan') + ['timPengaju' => $this->timPengaju()]
         );
     }
 
@@ -346,21 +392,73 @@ class PengajuanController extends Controller
         // 3. Ambil id_status dari tabel status pengajuan
         $statusTarget = StatusPengajuan::where('kode_status', $kodeStatusBaru)->firstOrFail();
 
-        // 4. Update data pengajuan
-        $pengajuan->update([
-            'perihal'           => \Illuminate\Support\Str::limit($request->keterangan, 100, '...'),
-            'keterangan'        => $request->keterangan,
-            'total_nominal'     => $request->total_nominal,
-            'bulan_kegiatan'    => $request->bulan_kegiatan,
-            // Mengikuti divisi akun; nilai lama dipertahankan bila belum ada divisi
-            // supaya data pengajuan lama tidak terhapus saat revisi.
-            'tim_pengaju'       => $this->divisiPengaju() ?? $pengajuan->tim_pengaju,
-            'nama_penerima'     => $request->nama_penerima,
-            'catatan_pengaju'   => $request->catatan_pengaju,
-            'id_status'         => $statusTarget->id_status, // Status dinamis masuk ke sini
-        ]);
+        $tim = $this->timTerpilih($request->input('id_tim'));
+
+        // 4. Update data pengajuan beserta daftar penerimanya, dalam satu transaksi
+        //    supaya pengajuan tidak pernah tersimpan dengan daftar penerima yang
+        //    separuh terhapus.
+        DB::transaction(function () use ($request, $pengajuan, $statusTarget, $tim) {
+            $pengajuan->update([
+                'perihal'           => \Illuminate\Support\Str::limit($request->keterangan, 100, '...'),
+                'keterangan'        => $request->keterangan,
+                'total_nominal'     => $request->total_nominal,
+                'bulan_kegiatan'    => $request->bulan_kegiatan,
+                // Nilai lama dipertahankan bila akun ini sudah tidak punya tim,
+                // supaya data pengajuan lama tidak terhapus saat revisi.
+                'id_tim'            => $tim?->id_tim ?? $pengajuan->id_tim,
+                'tim_pengaju'       => $tim?->nama_tim ?? $pengajuan->tim_pengaju,
+                'nama_penerima'     => $request->nama_penerima,
+                'catatan_pengaju'   => $request->catatan_pengaju,
+                'id_status'         => $statusTarget->id_status, // Status dinamis masuk ke sini
+            ]);
+
+            // Daftar penerima ditulis ulang, bukan dicocokkan baris per baris:
+            // daftarnya bisa diimpor ulang dari berkas lain sehingga urutan dan
+            // isinya boleh berubah sama sekali.
+            $pengajuan->penerima()->delete();
+            $this->simpanPenerima($pengajuan, $request->input('penerima', []));
+        });
 
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan berhasil diperbaiki dan dikembalikan ke pemeriksa terakhir.');
+    }
+
+
+    /**
+     * Simpan daftar penerima yang diusulkan pengaju.
+     *
+     * Daftar ini opsional: SPJ dengan satu penerima cukup mengandalkan kolom
+     * nama_penerima. Bila diisi (manual atau hasil impor berkas Excel), tiap
+     * barisnya disimpan agar Bendahara tidak perlu mengetik ulang nama dan
+     * nominal satu per satu saat mencairkan.
+     *
+     * Baris tanpa nama atau bernominal nol dibuang: impor dari berkas sering
+     * menyertakan baris kosong di bawah data.
+     *
+     * @param  array<int, array<string, mixed>>  $baris
+     */
+    private function simpanPenerima(Pengajuan $pengajuan, array $baris): void
+    {
+        $urutan = 0;
+
+        foreach ($baris as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $nama = trim((string) ($item['nama_penerima'] ?? ''));
+            $nominal = (float) ($item['nominal'] ?? 0);
+
+            if ($nama === '' || $nominal <= 0) {
+                continue;
+            }
+
+            PenerimaPengajuan::create([
+                'id_pengajuan' => $pengajuan->id_pengajuan,
+                'urutan' => ++$urutan,
+                'nama_penerima' => $nama,
+                'nominal' => $nominal,
+            ]);
+        }
     }
 
 
