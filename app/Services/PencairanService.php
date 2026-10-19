@@ -76,6 +76,12 @@ class PencairanService
             "*PENGAJUAN SPP BARU*\nSPP untuk pengajuan '{$pengajuan->perihal}' telah diajukan oleh Bendahara dan menunggu proses PPK."
         );
 
+        // Pengaju dikabari setiap kali pengajuannya berpindah tangan.
+        FonnteService::notifyPengaju(
+            $pengajuan,
+            "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah disetujui Bendahara. SPP sudah diterbitkan dan kini menunggu proses PPK."
+        );
+
         return $pengajuan;
     }
 
@@ -170,6 +176,11 @@ class PencairanService
             "*PERSETUJUAN PPK*\nPengajuan '{$pengajuan->perihal}' telah disetujui PPK. Menunggu penerbitan SPM atau Pencairan."
         );
 
+        FonnteService::notifyPengaju(
+            $pengajuan,
+            "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah disetujui PPK dan kini menunggu proses PPSPM."
+        );
+
         return $pengajuan;
     }
 
@@ -197,6 +208,11 @@ class PencairanService
         FonnteService::notifyRole(
             'bendahara',
             "*PROSES PPSPM SELESAI*\nSPM untuk pengajuan '{$pengajuan->perihal}' telah diajukan ke Kemenkeu oleh PPSPM. Menunggu konfirmasi SP2D/pencairan Bendahara."
+        );
+
+        FonnteService::notifyPengaju(
+            $pengajuan,
+            "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah diajukan ke Kemenkeu oleh PPSPM dan kini menunggu konfirmasi pencairan dari Bendahara."
         );
 
         return $pengajuan;

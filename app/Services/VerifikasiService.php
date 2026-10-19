@@ -134,11 +134,23 @@ class VerifikasiService
                     'verifikator',
                     "*PENGAJUAN MENUNGGU VERIFIKASI TAHAP {$tahapBerikutnya}*\nPengajuan '{$pengajuan->perihal}' telah disetujui Verifikator Tahap {$tahapVerifikator} dan menunggu verifikasi Tahap {$tahapBerikutnya}."
                 );
+
+                // Pengaju ikut dikabari setiap kali pengajuannya maju satu tahap,
+                // bukan hanya saat perlu direvisi atau ditolak.
+                FonnteService::notifyPengaju(
+                    $pengajuan,
+                    "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah disetujui Verifikator Tahap {$tahapVerifikator} dan kini menunggu verifikasi Tahap {$tahapBerikutnya}."
+                );
             } else {
                 // Tahap 3 ACC → masuk ke Bendahara
                 FonnteService::notifyRole(
                     'bendahara',
                     "*PENGAJUAN SIAP DICAIRKAN*\nPengajuan '{$pengajuan->perihal}' telah lolos seluruh verifikasi dan menunggu tindak lanjut pencairan Anda."
+                );
+
+                FonnteService::notifyPengaju(
+                    $pengajuan,
+                    "*VERIFIKASI SELESAI*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah lolos seluruh tahap verifikasi dan kini menunggu tindak lanjut Bendahara."
                 );
             }
         }
