@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-
+use App\Services\FonnteService;
 class PengajuanController extends Controller
 {
     /*
@@ -191,6 +191,7 @@ class PengajuanController extends Controller
                 'nama_penerima' => $request->nama_penerima,
                 'catatan_pengaju' => $request->catatan_pengaju,
             ]);
+            \App\Services\FonnteService::notifyRole('verifikator', "*PENGAJUAN BARU*\nAda pengajuan baru dari {$pengaju->name}.\nPerihal: {$pengajuan->perihal}\nNominal: Rp " . number_format($pengajuan->total_nominal, 0, ',', '.') . "\nMohon untuk segera diverifikasi.");
 
             if ($lewatiTahap1) {
                 $statusAcc = StatusVerifikasi::query()
@@ -359,6 +360,11 @@ class PengajuanController extends Controller
             'catatan_pengaju'   => $request->catatan_pengaju,
             'id_status'         => $statusTarget->id_status, // Status dinamis masuk ke sini
         ]);
+
+        FonnteService::notifyRole(
+            'verifikator',
+            "*REVISI PENGAJUAN DIKIRIM*\nPengajuan '{$pengajuan->perihal}' dari " . auth()->user()->nama_lengkap . " telah direvisi dan dikirim kembali untuk ditinjau ulang."
+        );
 
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan berhasil diperbaiki dan dikembalikan ke pemeriksa terakhir.');
     }

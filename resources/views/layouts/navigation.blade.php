@@ -91,12 +91,9 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        {{-- Route profile.* belum didaftarkan di routes/web.php. --}}
-                        @if(Route::has('profile.edit'))
-                            <x-dropdown-link :href="route('profile.edit')">
-                                {{ __('Profile') }}
-                            </x-dropdown-link>
-                        @endif
+                        <x-dropdown-link :href="route('password.edit')">
+                            {{ __('Pengaturan Akun') }}
+                        </x-dropdown-link>
 
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -197,12 +194,9 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                {{-- Route profile.* belum didaftarkan di routes/web.php. --}}
-                @if(Route::has('profile.edit'))
-                    <x-responsive-nav-link :href="route('profile.edit')">
-                        {{ __('Profile') }}
-                    </x-responsive-nav-link>
-                @endif
+                <x-responsive-nav-link :href="route('password.edit')">
+                    {{ __('Pengaturan Akun') }}
+                </x-responsive-nav-link>
 
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">

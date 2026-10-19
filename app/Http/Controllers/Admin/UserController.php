@@ -102,6 +102,7 @@ class UserController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user?->id_user, 'id_user'),
             ],
+            'no_hp' => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9]{7,20}$/'],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
             'id_role' => ['required', 'exists:roles,id_role'],
             // Divisi bersifat opsional: pilihan kosong diubah jadi null oleh

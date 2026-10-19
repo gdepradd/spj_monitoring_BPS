@@ -6,6 +6,7 @@ use App\Models\Pengajuan;
 use App\Models\StatusPengajuan;
 use App\Models\StatusVerifikasi;
 use App\Models\Verifikasi;
+use App\Services\FonnteService;
 use Illuminate\Support\Facades\DB;
 
 class VerifikasiService
@@ -15,7 +16,7 @@ class VerifikasiService
         array $data,
         int $tahapVerifikator
     ): Pengajuan {
-        return DB::transaction(function () use (
+        $pengajuan = DB::transaction(function () use (
             $pengajuan,
             $data,
             $tahapVerifikator
@@ -106,5 +107,42 @@ class VerifikasiService
 
             return $pengajuan->fresh('status');
         });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notifikasi WhatsApp via Fonnte (di luar transaksi agar tidak rollback)
+        |--------------------------------------------------------------------------
+        */
+        $statusVerifikasi = StatusVerifikasi::findOrFail($data['id_status_verifikasi']);
+        $catatan = $data['catatan'] ?? '-';
+        $kodeKeputusan = $statusVerifikasi->kode_status;
+
+        if ($kodeKeputusan === 'REVISI') {
+            FonnteService::notifyPengaju(
+                $pengajuan,
+                "*PENGAJUAN PERLU REVISI*\nPengajuan Anda terkait '{$pengajuan->perihal}' perlu direvisi oleh Verifikator Tahap {$tahapVerifikator}.\nCatatan: {$catatan}"
+            );
+        } elseif ($kodeKeputusan === 'TOLAK') {
+            FonnteService::notifyPengaju(
+                $pengajuan,
+                "*PENGAJUAN DITOLAK*\nMohon maaf, pengajuan Anda terkait '{$pengajuan->perihal}' ditolak oleh Verifikator Tahap {$tahapVerifikator}.\nCatatan: {$catatan}"
+            );
+        } elseif ($kodeKeputusan === 'ACC') {
+            if ($tahapVerifikator < 3) {
+                $tahapBerikutnya = $tahapVerifikator + 1;
+                FonnteService::notifyRole(
+                    'verifikator',
+                    "*PENGAJUAN MENUNGGU VERIFIKASI TAHAP {$tahapBerikutnya}*\nPengajuan '{$pengajuan->perihal}' telah disetujui Verifikator Tahap {$tahapVerifikator} dan menunggu verifikasi Tahap {$tahapBerikutnya}."
+                );
+            } else {
+                // Tahap 3 ACC → masuk ke Bendahara
+                FonnteService::notifyRole(
+                    'bendahara',
+                    "*PENGAJUAN SIAP DICAIRKAN*\nPengajuan '{$pengajuan->perihal}' telah lolos seluruh verifikasi dan menunggu tindak lanjut pencairan Anda."
+                );
+            }
+        }
+
+        return $pengajuan;
     }
 }

@@ -19,6 +19,12 @@
         @error('email')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
     <div>
+        <x-input-label for="no_hp" value="No. HP / WhatsApp" />
+        <x-text-input id="no_hp" name="no_hp" type="tel" value="{{ old('no_hp', $user->no_hp ?? '') }}" placeholder="Contoh: 081234567890" />
+        <p class="mt-1 text-xs text-ui-muted">Digunakan untuk notifikasi WhatsApp. Kosongkan jika tidak diperlukan.</p>
+        @error('no_hp')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+    </div>
+    <div>
         <x-input-label for="id_role" value="Role" />
         <select id="id_role" name="id_role" x-model="idRole" class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card" required>
             <option value="">Pilih role</option>

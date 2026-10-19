@@ -48,14 +48,22 @@ return new class extends Migration
         );
 
         // Pembayaran lama seluruhnya bersifat penuh.
-        DB::table('bendahara as b')
+        // Menggantikan query JOIN update yang tidak didukung SQLite
+        $records = DB::table('bendahara as b')
             ->join('pengajuan as p', 'p.id_pengajuan', '=', 'b.id_pengajuan')
             ->whereIn('b.tahap', ['PEMBAYARAN_LANGSUNG', 'KONFIRMASI'])
             ->whereNull('b.nominal')
-            ->update([
-                'b.nominal' => DB::raw('p.total_nominal'),
-                'b.nama_penerima' => DB::raw('COALESCE(b.atas_nama_rekening, p.nama_penerima)'),
-            ]);
+            ->select('b.id_bendahara', 'b.atas_nama_rekening', 'p.total_nominal', 'p.nama_penerima')
+            ->get();
+
+        foreach ($records as $row) {
+            DB::table('bendahara')
+                ->where('id_bendahara', $row->id_bendahara)
+                ->update([
+                    'nominal' => $row->total_nominal,
+                    'nama_penerima' => $row->atas_nama_rekening ?? $row->nama_penerima,
+                ]);
+        }
 
         DB::table('pengajuan')
             ->whereNull('jenis_pencairan')

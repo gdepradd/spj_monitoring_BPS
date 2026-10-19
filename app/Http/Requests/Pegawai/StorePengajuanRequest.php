@@ -16,16 +16,20 @@ class StorePengajuanRequest extends FormRequest
     }
 
     public function rules(): array
-{
-    return [
-        'tanggal_pengajuan' => ['required', 'date'],
-        'bulan_kegiatan'    => ['required', 'date'],
-        'nama_penerima'     => ['required', 'string', 'max:255'],
-        'keterangan'        => ['required', 'string'],
-        'total_nominal'     => ['required', 'numeric', 'min:0'],
-        'catatan_pengaju'   => ['nullable', 'string'],
-    ];
-}
+    {
+        return [
+            'tanggal_pengajuan'              => ['required', 'date'],
+            'bulan_kegiatan'                 => ['required', 'date'],
+            'nama_penerima'                  => ['required', 'string', 'max:255'],
+            'keterangan'                     => ['required', 'string'],
+            'total_nominal'                  => ['required', 'numeric', 'min:0'],
+            'catatan_pengaju'                => ['nullable', 'string'],
+            // Daftar penerima bersifat opsional; bila diisi, tiap baris wajib ada nama.
+            'daftar_penerima'                => ['nullable', 'array'],
+            'daftar_penerima.*.nama'         => ['required_with:daftar_penerima', 'string', 'max:255'],
+            'daftar_penerima.*.nominal'      => ['nullable', 'numeric', 'min:0'],
+        ];
+    }
     public function messages(): array
     {
         return [

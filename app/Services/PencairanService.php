@@ -8,6 +8,7 @@ use App\Models\Bendahara;
 use App\Models\Ppspm;
 use App\Models\StatusPencairan;
 use App\Models\StatusPengajuan;
+use App\Services\FonnteService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +24,9 @@ class PencairanService
 
     public function tolakAtauRevisiBendahara(Pengajuan $pengajuan, array $data, string $tahap)
     {
-        return DB::transaction(function () use ($pengajuan, $data, $tahap) {
+        $kodeGlobal = (int) $data['id_status_pencairan'] === StatusPencairan::REVISI ? 'REVISI' : 'DITOLAK';
+
+        $pengajuan = DB::transaction(function () use ($pengajuan, $data, $tahap, $kodeGlobal) {
             Bendahara::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
                 'id_user' => auth()->id(),
@@ -33,17 +36,24 @@ class PencairanService
                 'catatan' => $data['catatan'] ?? null,
             ]);
 
-            $kodeGlobal = (int) $data['id_status_pencairan'] === StatusPencairan::REVISI ? 'REVISI' : 'DITOLAK';
             $statusGlobal = StatusPengajuan::where('kode_status', $kodeGlobal)->firstOrFail();
             $pengajuan->update(['id_status' => $statusGlobal->id_status]);
 
             return $pengajuan;
         });
+
+        $catatan = $data['catatan'] ?? '-';
+        FonnteService::notifyPengaju(
+            $pengajuan,
+            "*PENGAJUAN {$kodeGlobal} (BENDAHARA)*\nPengajuan Anda terkait '{$pengajuan->perihal}' dikembalikan/ditolak pada tahap {$tahap}.\nCatatan: {$catatan}"
+        );
+
+        return $pengajuan;
     }
 
     public function bendaharaAjukanSpp(Pengajuan $pengajuan, array $data)
     {
-        return DB::transaction(function () use ($pengajuan, $data) {
+        $pengajuan = DB::transaction(function () use ($pengajuan, $data) {
             Bendahara::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
                 'id_user' => auth()->id(),
@@ -60,6 +70,13 @@ class PencairanService
 
             return $pengajuan;
         });
+
+        FonnteService::notifyRole(
+            'ppk',
+            "*PENGAJUAN SPP BARU*\nSPP untuk pengajuan '{$pengajuan->perihal}' telah diajukan oleh Bendahara dan menunggu proses PPK."
+        );
+
+        return $pengajuan;
     }
 
     /**
@@ -67,12 +84,22 @@ class PencairanService
      */
     public function bendaharaBayarLangsung(Pengajuan $pengajuan, array $data)
     {
-        return DB::transaction(function () use ($pengajuan, $data) {
-            $this->catatPembayaran($pengajuan, $data, 'PEMBAYARAN_LANGSUNG');
+        $tercatat = collect();
+
+        $pengajuan = DB::transaction(function () use ($pengajuan, $data, &$tercatat) {
+            $tercatat = $this->catatPembayaran($pengajuan, $data, 'PEMBAYARAN_LANGSUNG');
             $this->perbaruiStatusPencairan($pengajuan);
 
             return $pengajuan;
         });
+
+        $nominalCair = $tercatat->sum('nominal');
+        FonnteService::notifyPengaju(
+            $pengajuan,
+            "*DANA TELAH DICAIRKAN*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah berhasil dicairkan sejumlah Rp " . number_format($nominalCair, 0, ',', '.')
+        );
+
+        return $pengajuan;
     }
 
     /**
@@ -81,7 +108,9 @@ class PencairanService
      */
     public function bendaharaBayarLanjutan(Pengajuan $pengajuan, array $data)
     {
-        return DB::transaction(function () use ($pengajuan, $data) {
+        $tercatat = collect();
+
+        $pengajuan = DB::transaction(function () use ($pengajuan, $data, &$tercatat) {
             $tahap = $pengajuan->metode_pembayaran === 'UP_TUP'
                 ? 'PEMBAYARAN_LANGSUNG'
                 : 'KONFIRMASI';
@@ -102,16 +131,24 @@ class PencairanService
                 ];
             }
 
-            $this->catatPembayaran($pengajuan, $data, $tahap, $tambahan);
+            $tercatat = $this->catatPembayaran($pengajuan, $data, $tahap, $tambahan);
             $this->perbaruiStatusPencairan($pengajuan);
 
             return $pengajuan;
         });
+
+        $nominalCair = $tercatat->sum('nominal');
+        FonnteService::notifyPengaju(
+            $pengajuan,
+            "*DANA LANJUTAN DICAIRKAN*\nPembayaran bertahap untuk pengajuan '{$pengajuan->perihal}' telah dicairkan sejumlah Rp " . number_format($nominalCair, 0, ',', '.')
+        );
+
+        return $pengajuan;
     }
 
-   public function ppkTerbitkanSpm(Pengajuan $pengajuan, array $data)
+    public function ppkTerbitkanSpm(Pengajuan $pengajuan, array $data)
     {
-        return DB::transaction(function () use ($pengajuan, $data) {
+        $pengajuan = DB::transaction(function () use ($pengajuan, $data) {
             Ppk::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
                 'id_user' => auth()->id(),
@@ -127,11 +164,18 @@ class PencairanService
 
             return $pengajuan;
         });
+
+        FonnteService::notifyRole(
+            ['ppspm', 'bendahara'],
+            "*PERSETUJUAN PPK*\nPengajuan '{$pengajuan->perihal}' telah disetujui PPK. Menunggu penerbitan SPM atau Pencairan."
+        );
+
+        return $pengajuan;
     }
 
     public function ppspmAjukanKemenkeu(Pengajuan $pengajuan, array $data)
     {
-        return DB::transaction(function () use ($pengajuan, $data) {
+        $pengajuan = DB::transaction(function () use ($pengajuan, $data) {
             Ppspm::create([
                 'id_pengajuan' => $pengajuan->id_pengajuan,
                 'id_user' => auth()->id(),
@@ -149,15 +193,24 @@ class PencairanService
 
             return $pengajuan;
         });
+
+        FonnteService::notifyRole(
+            'bendahara',
+            "*PROSES PPSPM SELESAI*\nSPM untuk pengajuan '{$pengajuan->perihal}' telah diajukan ke Kemenkeu oleh PPSPM. Menunggu konfirmasi SP2D/pencairan Bendahara."
+        );
+
+        return $pengajuan;
     }
 
-   public function bendaharaKonfirmasi(Pengajuan $pengajuan, array $data)
+    public function bendaharaKonfirmasi(Pengajuan $pengajuan, array $data)
     {
-        return DB::transaction(function () use ($pengajuan, $data) {
+        $tercatat = collect();
+
+        $pengajuan = DB::transaction(function () use ($pengajuan, $data, &$tercatat) {
             // Nomor SPM diterbitkan PPSPM; SP2D diinput Bendahara pada tahap ini.
             $ppspm = $pengajuan->ppspm()->orderByDesc('id_ppspm')->first();
 
-            $this->catatPembayaran($pengajuan, $data, 'KONFIRMASI', [
+            $tercatat = $this->catatPembayaran($pengajuan, $data, 'KONFIRMASI', [
                 'no_spm' => $data['no_spm'] ?? $ppspm?->no_spm,
                 'no_sp2d' => $data['no_sp2d'] ?? null,
                 'tgl_sp2d' => $data['tgl_sp2d'] ?? null,
@@ -167,6 +220,14 @@ class PencairanService
 
             return $pengajuan;
         });
+
+        $nominalCair = $tercatat->sum('nominal');
+        FonnteService::notifyPengaju(
+            $pengajuan,
+            "*DANA TELAH DICAIRKAN*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah berhasil dicairkan sejumlah Rp " . number_format($nominalCair, 0, ',', '.')
+        );
+
+        return $pengajuan;
     }
 
     /**

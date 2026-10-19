@@ -62,6 +62,8 @@
                 @error('total_nominal')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
+            <x-daftar-penerima />
+
             <div class="flex gap-3">
                 <x-primary-button>Kirim Pengajuan</x-primary-button>
                 <a href="{{ route('pengajuan.index') }}" class="rounded-lg border border-ui-border px-4 py-2 text-sm font-medium">Batal</a>

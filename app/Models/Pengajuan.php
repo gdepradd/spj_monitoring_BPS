@@ -29,11 +29,14 @@ class Pengajuan extends Model
         'nama_penerima',
         // PENUH atau PARSIAL, ditentukan Bendahara saat mulai mencairkan.
         'jenis_pencairan',
+        // Daftar penerima opsional yang diisi Pegawai saat pengajuan.
+        'daftar_penerima',
     ];
 
     protected $casts = [
         'tanggal_pengajuan' => 'date',
-        'total_nominal' => 'decimal:2',
+        'total_nominal'     => 'decimal:2',
+        'daftar_penerima'   => 'array',
     ];
 
     public function pemohon(): BelongsTo

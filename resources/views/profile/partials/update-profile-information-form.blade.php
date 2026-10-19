@@ -46,6 +46,11 @@
                 </div>
             @endif
         </div>
+        <div>
+            <x-input-label for="no_hp" :value="__('Nomor WhatsApp')" />
+            <x-text-input id="no_hp" name="no_hp" type="text" class="mt-1 block w-full" :value="old('no_hp', $user->no_hp)" placeholder="Contoh: 081234567890" />
+            <x-input-error class="mt-2" :messages="$errors->get('no_hp')" />
+        </div>
 
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>

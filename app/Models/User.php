@@ -31,6 +31,7 @@ class User extends Authenticatable
         'id_divisi',
         'status_aktif',
         'urutan_verifikator',
+        'no_hp',
     ];
 
     protected $hidden = [
@@ -68,5 +69,17 @@ class User extends Authenticatable
     public function hasRole(string ...$roles): bool
     {
         return $this->isRole(...$roles);
+    }
+    public static function getPhonesByRole($roleNames)
+    {
+        $roleNames = (array) $roleNames;
+
+        return self::whereHas('role', function ($query) use ($roleNames) {
+            $query->whereIn('nama_role', $roleNames);
+        })
+        ->whereNotNull('no_hp')
+        ->where('no_hp', '!=', '')
+        ->pluck('no_hp')
+        ->implode(',');
     }
 }

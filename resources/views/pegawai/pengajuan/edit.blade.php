@@ -56,6 +56,12 @@
                 @error('catatan_pengaju')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
+            @php
+                // Ambil data penerima yang sudah pernah diisi (dari session old atau data pengajuan)
+                $awalPenerima = old('daftar_penerima', $pengajuan->daftar_penerima ?? []);
+            @endphp
+            <x-daftar-penerima :awalPenerima="$awalPenerima" />
+
             <div class="flex gap-3">
                 <x-primary-button>Kirim Perbaikan</x-primary-button>
                 <a href="{{ route('pengajuan.show', $pengajuan) }}" class="rounded-lg border border-ui-border px-4 py-2 text-sm font-medium">Batal</a>

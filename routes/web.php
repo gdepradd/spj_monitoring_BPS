@@ -18,6 +18,7 @@ use App\Http\Controllers\Auth\PasswordController;
 Route::middleware('auth')->group(function () {
     Route::get('/akun/password', [PasswordController::class, 'edit'])->name('password.edit');
     Route::put('/akun/password', [PasswordController::class, 'update'])->name('password.update');
+    Route::put('/akun/profil', [PasswordController::class, 'updateProfil'])->name('profil.update');
 });
 
 // DETAIL RIWAYAT (dipakai semua role: verifikator s.d. pencairan)
