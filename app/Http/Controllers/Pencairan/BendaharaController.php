@@ -118,6 +118,8 @@ class BendaharaController extends Controller
             'verifikasi.statusVerifikasi',
             'bendahara.user',
             'ppk.user',
+            // Daftar penerima usulan pengaju, ditampilkan di layar ini.
+            'penerima',
             'ppspm.user',
         ])->findOrFail($id);
 

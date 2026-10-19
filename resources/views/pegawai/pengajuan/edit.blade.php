@@ -14,15 +14,33 @@
                 @error('tanggal_pengajuan')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
-            {{-- Tim pengaju mengikuti divisi akun, bukan diisi manual. Barisnya
-                 disembunyikan bila tidak ada nilai yang bisa ditampilkan; nilai
-                 lama pengajuan tetap dipertahankan di sisi server. --}}
-            @php($timPengaju = $divisiPengaju ?? $pengajuan->tim_pengaju)
-            @if($timPengaju)
+            {{-- Tim pengaju. Satu orang bisa tergabung di beberapa tim, jadi tim
+                 bisa diganti saat merevisi. Bila akun sudah tidak punya tim,
+                 nilai lama pengajuan tetap dipertahankan di sisi server dan
+                 ditampilkan apa adanya di sini. --}}
+            @if($timPengaju->count() === 1)
                 <div>
                     <x-input-label value="Tim yang mengajukan SPJ" />
-                    <p class="mt-1 font-semibold text-ui-text">{{ $timPengaju }}</p>
-                    <p class="mt-1 text-xs text-ui-muted">Diambil otomatis dari divisi akun Anda.</p>
+                    <p class="mt-1 font-semibold text-ui-text">{{ $timPengaju->first()->nama_tim }}</p>
+                    <p class="mt-1 text-xs text-ui-muted">Diambil otomatis dari tim akun Anda.</p>
+                </div>
+            @elseif($timPengaju->count() > 1)
+                <div>
+                    <x-input-label for="id_tim" value="Tim yang mengajukan SPJ" />
+                    <select id="id_tim" name="id_tim" required
+                            class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card focus:border-pov-pengajuan focus:ring-pov-pengajuan">
+                        <option value="">— Pilih tim —</option>
+                        @foreach($timPengaju as $tim)
+                            <option value="{{ $tim->id_tim }}" @selected((string) old('id_tim', $pengajuan->id_tim) === (string) $tim->id_tim)>{{ $tim->nama_tim }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-ui-muted">Anda tergabung di beberapa tim. Pilih tim yang mengajukan SPJ ini.</p>
+                    @error('id_tim')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+                </div>
+            @elseif($pengajuan->tim_pengaju)
+                <div>
+                    <x-input-label value="Tim yang mengajukan SPJ" />
+                    <p class="mt-1 font-semibold text-ui-text">{{ $pengajuan->tim_pengaju }}</p>
                 </div>
             @endif
 
@@ -50,17 +68,17 @@
                 @error('total_nominal')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
+            {{-- Daftar penerima ikut bisa diperbaiki saat revisi, termasuk diimpor
+                 ulang dari berkas lain. Daftar lama ditulis ulang, bukan ditambah. --}}
+            <div>
+                <x-penerima-pengajuan :penerima="$pengajuan->penerima" />
+            </div>
+
             <div>
                 <x-input-label for="catatan_pengaju" value="Catatan Perbaikan dari Pegawai" />
                 <textarea id="catatan_pengaju" name="catatan_pengaju" rows="4" class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card focus:border-pov-pengajuan focus:ring-pov-pengajuan">{{ old('catatan_pengaju', $pengajuan->catatan_pengaju) }}</textarea>
                 @error('catatan_pengaju')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
-
-            @php
-                // Ambil data penerima yang sudah pernah diisi (dari session old atau data pengajuan)
-                $awalPenerima = old('daftar_penerima', $pengajuan->daftar_penerima ?? []);
-            @endphp
-            <x-daftar-penerima :awalPenerima="$awalPenerima" />
 
             <div class="flex gap-3">
                 <x-primary-button>Kirim Perbaikan</x-primary-button>

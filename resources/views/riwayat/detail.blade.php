@@ -81,6 +81,12 @@
                         <dt class="text-xs font-medium uppercase text-ui-muted">Nama Penerima</dt>
                         <dd class="mt-1">{{ $pengajuan->nama_penerima ?? '-' }}</dd>
                     </div>
+
+                    {{-- Daftar penerima dari pengaju, bila SPJ ini dibayarkan ke
+                         beberapa orang. Tidak dirender bila daftarnya kosong. --}}
+                    <div class="sm:col-span-2">
+                        <x-tabel-penerima :penerima="$pengajuan->penerima" :total="$pengajuan->total_nominal" />
+                    </div>
                     <div>
                         <dt class="text-xs font-medium uppercase text-ui-muted">Total Nominal</dt>
                         <dd class="mt-1 font-semibold">Rp {{ number_format((float) $pengajuan->total_nominal, 2, ',', '.') }}</dd>

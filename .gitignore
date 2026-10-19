@@ -26,3 +26,9 @@ yarn-error.log
 # SPJ, dan sekali masuk akan ikut selamanya di riwayat git. Hasil ekstraksinya
 # sudah tersimpan rapi di database/seeders/data/pegawai.json.
 /data.sql
+
+# Basis data lokal — jangan pernah masuk repo: isinya email dan hash password
+# akun sungguhan.
+database/*.sqlite
+database/*.sqlite-journal
+/spj_monitoring

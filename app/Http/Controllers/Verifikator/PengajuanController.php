@@ -47,6 +47,8 @@ class PengajuanController extends Controller
                 $query->orderBy('tahap');
             },
 
+            // Daftar penerima usulan pengaju, ditampilkan di layar ini.
+            'penerima',
             'verifikasi.verifikator',
             'verifikasi.statusVerifikasi',
         ])->findOrFail($id);

@@ -4,14 +4,17 @@
     $user = auth()->user();
     $role = $user?->role?->nama_role;
 
-    // Label peran, ditambah nama divisi bila akun ini punya divisi.
-    // Contoh hasil: "Pegawai Divisi Produksi".
+    // Label peran, ditambah nama tim untuk pegawai. Peran pemeriksa (verifikator,
+    // PPK, bendahara, PPSPM) sengaja tidak diberi imbuhan tim: tugas memeriksanya
+    // berlaku lintas tim, jadi "Bendahara Tim Umum" justru menyesatkan walau
+    // akunnya memang anggota tim Umum.
+    // Contoh hasil: "Pegawai · Tim Produksi, IPDS".
     $roleLabel = $role === 'admin'
         ? 'Super Admin'
         : ucwords(str_replace('_', ' ', (string) $role));
 
-    if ($user?->divisi) {
-        $roleLabel .= ' Divisi ' . $user->divisi->nama_divisi;
+    if ($role === 'pegawai' && $namaTim = $user?->namaTim()) {
+        $roleLabel .= ' · Tim ' . $namaTim;
     }
 
     $sidebarClass = match (true) {
@@ -70,7 +73,7 @@
 
                 <p class="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-ui-card/60">Administrasi</p>
                 <a href="{{ route('admin.users.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Manajemen User</a>
-                <a href="{{ route('admin.divisi.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Manajemen Divisi</a>
+                <a href="{{ route('admin.tim.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Manajemen Tim</a>
             @elseif(in_array($role, ['verifikator', 'verifikator_1', 'verifikator_2', 'verifikator_3']))
                 <a href="{{ route('verifikator.pengajuan.index') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Daftar Pengajuan</a>
                 <a href="{{ route('verifikator.riwayat') }}" class="block rounded-lg px-3 py-2 hover:bg-ui-card/10">Riwayat</a>
@@ -175,5 +178,10 @@
             });
         }
     </script>
+{{-- Skrip khusus halaman/komponen. Diletakkan di akhir body, dan sebagai skrip
+     biasa (bukan module) sehingga tetap berjalan sebelum Alpine dimulai oleh
+     berkas app.js — penting bagi komponen yang mendaftarkan diri lewat
+     peristiwa 'alpine:init'. --}}
+@stack('skrip')
 </body>
 </html>

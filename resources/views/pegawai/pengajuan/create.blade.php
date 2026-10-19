@@ -14,16 +14,29 @@
                 <input type="text" value="{{ \Carbon\Carbon::now()->format('d/m/y') }}" class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm cursor-not-allowed" disabled>
                 <input type="hidden" name="tanggal_pengajuan" value="{{ \Carbon\Carbon::now()->format('Y-m-d') }}">
             </div>
-            {{-- Tim pengaju tidak lagi diisi manual: nilainya diambil dari divisi
-                 akun yang mengisi form, dan ditetapkan di sisi server.
-                 Barisnya disembunyikan saat akun tidak punya divisi — peran
-                 pemeriksa umumnya memang tanpa divisi, dan form ini bukan
-                 tempat yang tepat untuk mengurus hal itu. --}}
-            @if($divisiPengaju)
+            {{-- Tim pengaju. Satu orang bisa tergabung di beberapa tim, jadi:
+                 - satu tim  : ditetapkan otomatis, cukup ditampilkan;
+                 - banyak tim: pengaju memilih tim mana yang mengajukan;
+                 - tanpa tim : barisnya tidak dirender sama sekali. Peran pemeriksa
+                   umumnya memang tanpa tim, dan form ini bukan tempat mengurusnya. --}}
+            @if($timPengaju->count() === 1)
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700">Tim yang mengajukan SPJ</label>
-                    <p class="mt-1 font-semibold text-ui-text">{{ $divisiPengaju }}</p>
-                    <p class="mt-1 text-xs text-ui-muted">Diambil otomatis dari divisi akun Anda.</p>
+                    <p class="mt-1 font-semibold text-ui-text">{{ $timPengaju->first()->nama_tim }}</p>
+                    <p class="mt-1 text-xs text-ui-muted">Diambil otomatis dari tim akun Anda.</p>
+                </div>
+            @elseif($timPengaju->count() > 1)
+                <div class="mb-4">
+                    <label for="id_tim" class="block text-sm font-medium text-gray-700">Tim yang mengajukan SPJ</label>
+                    <select id="id_tim" name="id_tim" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">— Pilih tim —</option>
+                        @foreach($timPengaju as $tim)
+                            <option value="{{ $tim->id_tim }}" @selected((string) old('id_tim', '') === (string) $tim->id_tim)>{{ $tim->nama_tim }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-ui-muted">Anda tergabung di beberapa tim. Pilih tim yang mengajukan SPJ ini.</p>
+                    @error('id_tim') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
             @endif
 
@@ -62,7 +75,12 @@
                 @error('total_nominal')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
             </div>
 
-            <x-daftar-penerima />
+            {{-- Daftar penerima pembayaran. Opsional, dan bisa diimpor dari berkas
+                 Excel/CSV supaya daftar yang panjang tidak perlu diketik satu per satu.
+                 Bendahara memakai daftar ini sebagai isian awal form pencairan. --}}
+            <div>
+                <x-penerima-pengajuan />
+            </div>
 
             <div class="flex gap-3">
                 <x-primary-button>Kirim Pengajuan</x-primary-button>

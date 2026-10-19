@@ -34,16 +34,41 @@
         </select>
         @error('id_role')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
+    {{-- Satu orang boleh masuk beberapa tim sekaligus, jadi pilihannya berupa
+         centang, bukan dropdown. Tidak ada centang sama sekali berarti user
+         belum tergabung di tim mana pun — melepas seluruh centang memang
+         mengeluarkannya dari semua tim. --}}
     <div>
-        <x-input-label for="id_divisi" value="Divisi (opsional)" />
-        <select id="id_divisi" name="id_divisi" class="mt-1 block w-full rounded-lg border-ui-border bg-ui-card">
-            <option value="">— Tanpa divisi —</option>
-            @foreach($divisiList as $divisi)
-                <option value="{{ $divisi->id_divisi }}" @selected((string) old('id_divisi', $user->id_divisi ?? '') === (string) $divisi->id_divisi)>{{ $divisi->nama_divisi }}</option>
-            @endforeach
-        </select>
-        <p class="mt-1 text-xs text-ui-muted">Pegawai dalam satu divisi dapat saling melihat progres pengajuan.</p>
-        @error('id_divisi')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+        <x-input-label value="Tim (opsional, boleh lebih dari satu)" />
+
+        @if($timList->isEmpty())
+            <p class="mt-1 text-sm text-ui-muted">
+                Belum ada tim. Buat dulu di
+                <a href="{{ route('admin.tim.index') }}" class="font-semibold text-pov-pengajuan hover:underline">Manajemen Tim</a>.
+            </p>
+        @else
+            @php($timTerpilih = collect(old('tim', []))->map(fn ($id) => (string) $id)->all())
+
+            <div class="mt-2 grid gap-2 rounded-lg border border-ui-border p-3 sm:grid-cols-2">
+                @foreach($timList as $tim)
+                    <label class="flex items-start gap-2 text-sm">
+                        <input type="checkbox" name="tim[]" value="{{ $tim->id_tim }}"
+                               @checked(in_array((string) $tim->id_tim, $timTerpilih, true))
+                               class="mt-0.5 rounded border-ui-border text-pov-pengajuan focus:ring-pov-pengajuan">
+                        <span>
+                            <span class="font-medium">{{ $tim->nama_tim }}</span>
+                            @if($tim->keterangan)
+                                <span class="block text-xs text-ui-muted">{{ $tim->keterangan }}</span>
+                            @endif
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+        @endif
+
+        <p class="mt-1 text-xs text-ui-muted">Rekan satu tim dapat saling melihat progres pengajuan.</p>
+        @error('tim')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
+        @error('tim.*')<p class="mt-1 text-sm text-status-rejected">{{ $message }}</p>@enderror
     </div>
     {{-- Hanya relevan untuk role verifikator: disembunyikan sekaligus di-disable untuk
          role lain supaya field ini tidak ikut terkirim saat form disubmit. --}}

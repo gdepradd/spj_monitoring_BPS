@@ -24,12 +24,16 @@ class RiwayatController extends Controller
             'bendahara.user',
             'ppk.user',
             'ppspm.user',
+            'penerima',
+            'tim',
         ])->findOrFail($id);
 
         $user = Auth::user();
 
-        // Pegawai hanya boleh melihat riwayat pengajuannya sendiri.
-        if ($user->isRole('pegawai') && $pengajuan->id_user !== $user->id_user) {
+        // Pegawai boleh melihat riwayat pengajuannya sendiri, dan pengajuan rekan
+        // satu tim — tombol "Lihat Detail" pada panel tim di dashboard menuju ke
+        // sini. Pengajuan di luar keduanya tetap tertutup.
+        if ($user->isRole('pegawai') && ! $this->bolehDilihatPegawai($user, $pengajuan)) {
             abort(403, 'Anda tidak memiliki akses ke riwayat pengajuan ini.');
         }
 
@@ -59,5 +63,22 @@ class RiwayatController extends Controller
             'ppk',
             'ppspm'
         ));
+    }
+
+    /**
+     * Pengajuan milik sendiri, atau pengajuan yang diajukan atas nama salah satu
+     * tim yang diikuti pegawai ini.
+     *
+     * Penyaringannya memakai pengajuan.id_tim, sejalan dengan panel tim di
+     * dashboard, sehingga apa yang bisa diklik sama dengan apa yang bisa dibuka.
+     */
+    private function bolehDilihatPegawai(\App\Models\User $user, Pengajuan $pengajuan): bool
+    {
+        if ($pengajuan->id_user === $user->id_user) {
+            return true;
+        }
+
+        return $pengajuan->id_tim !== null
+            && $user->idTim()->contains($pengajuan->id_tim);
     }
 }

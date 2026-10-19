@@ -209,19 +209,22 @@
     </div>
 
 
-    {{-- Progres pengajuan rekan satu divisi.
-         Hanya dirender bila akun ini punya divisi; pengajuan milik sendiri sudah
-         tampil di panel atas sehingga dikecualikan dari daftar ini. --}}
-    @if($divisi)
+    {{-- Progres pengajuan rekan satu tim.
+         Hanya dirender bila akun ini tergabung di suatu tim. Satu orang bisa
+         masuk beberapa tim, jadi pengajuan dari seluruh tim itu digabung dalam
+         satu tabel dengan kolom Tim sebagai pembeda. Pengajuan milik sendiri
+         sudah tampil di panel atas sehingga dikecualikan dari daftar ini. --}}
+    @if($timSaya->isNotEmpty())
         <div class="mt-6 rounded-xl border border-ui-border bg-ui-card shadow-sm">
 
             <div class="border-b border-ui-border px-5 py-4">
                 <h3 class="font-semibold text-ui-text">
-                    Pengajuan Divisi {{ $divisi->nama_divisi }}
+                    Pengajuan Rekan Satu Tim
                 </h3>
 
                 <p class="mt-1 text-sm text-ui-muted">
-                    Progres pengajuan rekan satu divisi, di luar pengajuan Anda sendiri.
+                    Tim Anda: <span class="font-medium text-ui-text">{{ $timSaya->pluck('nama_tim')->implode(', ') }}</span>.
+                    Di luar pengajuan Anda sendiri.
                 </p>
             </div>
 
@@ -231,15 +234,17 @@
                         <tr class="border-b border-ui-border text-xs font-semibold uppercase text-ui-muted">
                             <th class="px-5 py-3">No. Pengajuan</th>
                             <th class="px-5 py-3">Pemohon</th>
+                            <th class="px-5 py-3">Tim</th>
                             <th class="px-5 py-3">Perihal</th>
                             <th class="px-5 py-3">Nilai Pengajuan</th>
                             <th class="px-5 py-3">Tanggal</th>
                             <th class="px-5 py-3">Status</th>
+                            <th class="px-5 py-3">Aksi</th>
                         </tr>
                     </thead>
 
                     <tbody class="divide-y divide-ui-border text-sm">
-                        @forelse($pengajuanDivisi as $item)
+                        @forelse($pengajuanTim as $item)
                             <tr class="transition hover:bg-ui-page/50">
                                 <td class="px-5 py-4 font-medium text-ui-text">
                                     {{ $item->no_pengajuan }}
@@ -247,6 +252,10 @@
 
                                 <td class="px-5 py-4 text-ui-text">
                                     {{ $item->user?->nama_lengkap ?? '—' }}
+                                </td>
+
+                                <td class="px-5 py-4 text-ui-muted">
+                                    {{ $item->tim?->nama_tim ?? $item->tim_pengaju ?? '—' }}
                                 </td>
 
                                 <td class="px-5 py-4 text-ui-muted">
@@ -264,13 +273,23 @@
                                 <td class="px-5 py-4">
                                     <x-status-badge :kode="$item->status?->kode_status" :label="$item->status?->nama_status ?? '-'" />
                                 </td>
+
+                                {{-- Riwayat lengkap dipakai bersama semua role; aksesnya untuk
+                                     pegawai dibatasi RiwayatController pada pengajuan milik
+                                     sendiri dan pengajuan tim yang sama. --}}
+                                <td class="px-5 py-4">
+                                    <a href="{{ route('riwayat.detail', $item->id_pengajuan) }}"
+                                       class="inline-flex items-center gap-1 rounded-lg border border-ui-border px-3 py-1.5 text-xs font-semibold text-pov-pengajuan transition hover:bg-ui-page">
+                                        Lihat Detail
+                                    </a>
+                                </td>
                             </tr>
 
                         @empty
 
                             <tr>
-                                <td colspan="6" class="px-5 py-8 text-center text-sm text-ui-muted">
-                                    Belum ada pengajuan dari rekan satu divisi.
+                                <td colspan="8" class="px-5 py-8 text-center text-sm text-ui-muted">
+                                    Belum ada pengajuan dari rekan satu tim.
                                 </td>
                             </tr>
                         @endforelse
