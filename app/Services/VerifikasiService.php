@@ -116,41 +116,67 @@ class VerifikasiService
         $statusVerifikasi = StatusVerifikasi::findOrFail($data['id_status_verifikasi']);
         $catatan = $data['catatan'] ?? '-';
         $kodeKeputusan = $statusVerifikasi->kode_status;
+        $namaVerifikator = auth()->user()->nama_lengkap ?? auth()->user()->name ?? 'Verifikator';
 
         if ($kodeKeputusan === 'REVISI') {
             FonnteService::notifyPengaju(
                 $pengajuan,
-                "*PENGAJUAN PERLU REVISI*\nPengajuan Anda terkait '{$pengajuan->perihal}' perlu direvisi oleh Verifikator Tahap {$tahapVerifikator}.\nCatatan: {$catatan}"
+                FonnteService::formatDetail(
+                    $pengajuan,
+                    'PENGAJUAN PERLU REVISI',
+                    "Dikembalikan oleh Verifikator Tahap {$tahapVerifikator} ({$namaVerifikator}). Silakan perbaiki dan kirim ulang.",
+                    $catatan
+                )
             );
         } elseif ($kodeKeputusan === 'TOLAK') {
             FonnteService::notifyPengaju(
                 $pengajuan,
-                "*PENGAJUAN DITOLAK*\nMohon maaf, pengajuan Anda terkait '{$pengajuan->perihal}' ditolak oleh Verifikator Tahap {$tahapVerifikator}.\nCatatan: {$catatan}"
+                FonnteService::formatDetail(
+                    $pengajuan,
+                    'PENGAJUAN DITOLAK',
+                    "Ditolak oleh Verifikator Tahap {$tahapVerifikator} ({$namaVerifikator}).",
+                    $catatan
+                )
             );
         } elseif ($kodeKeputusan === 'ACC') {
             if ($tahapVerifikator < 3) {
                 $tahapBerikutnya = $tahapVerifikator + 1;
                 FonnteService::notifyRole(
                     'verifikator',
-                    "*PENGAJUAN MENUNGGU VERIFIKASI TAHAP {$tahapBerikutnya}*\nPengajuan '{$pengajuan->perihal}' telah disetujui Verifikator Tahap {$tahapVerifikator} dan menunggu verifikasi Tahap {$tahapBerikutnya}."
+                    FonnteService::formatDetail(
+                        $pengajuan,
+                        'MENUNGGU VERIFIKASI TAHAP ' . $tahapBerikutnya,
+                        "Disetujui Verifikator Tahap {$tahapVerifikator} ({$namaVerifikator}). Menunggu verifikasi Tahap {$tahapBerikutnya}."
+                    )
                 );
 
-                // Pengaju ikut dikabari setiap kali pengajuannya maju satu tahap,
-                // bukan hanya saat perlu direvisi atau ditolak.
+                // Pengaju ikut dikabari setiap kali pengajuannya maju satu tahap
                 FonnteService::notifyPengaju(
                     $pengajuan,
-                    "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah disetujui Verifikator Tahap {$tahapVerifikator} dan kini menunggu verifikasi Tahap {$tahapBerikutnya}."
+                    FonnteService::formatDetail(
+                        $pengajuan,
+                        'PENGAJUAN ANDA MAJU',
+                        "Disetujui Verifikator Tahap {$tahapVerifikator}. Kini menunggu verifikasi Tahap {$tahapBerikutnya}."
+                    )
                 );
             } else {
                 // Tahap 3 ACC → masuk ke Bendahara
                 FonnteService::notifyRole(
                     'bendahara',
-                    "*PENGAJUAN SIAP DICAIRKAN*\nPengajuan '{$pengajuan->perihal}' telah lolos seluruh verifikasi dan menunggu tindak lanjut pencairan Anda."
+                    FonnteService::formatDetail(
+                        $pengajuan,
+                        'PENGAJUAN SIAP DICAIRKAN',
+                        "Lolos seluruh verifikasi (Tahap 1-3). Menunggu tindak lanjut pencairan Anda."
+                    )
                 );
 
                 FonnteService::notifyPengaju(
                     $pengajuan,
-                    "*VERIFIKASI SELESAI*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah lolos seluruh tahap verifikasi dan kini menunggu tindak lanjut Bendahara."
+                    FonnteService::formatDetail(
+                        $pengajuan,
+                        'VERIFIKASI SELESAI',
+                        "Lolos seluruh tahap verifikasi. Menunggu tindak lanjut Bendahara."
+                    )
                 );
             }
         }

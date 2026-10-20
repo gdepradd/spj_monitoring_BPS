@@ -45,7 +45,12 @@ class PencairanService
         $catatan = $data['catatan'] ?? '-';
         FonnteService::notifyPengaju(
             $pengajuan,
-            "*PENGAJUAN {$kodeGlobal} (BENDAHARA)*\nPengajuan Anda terkait '{$pengajuan->perihal}' dikembalikan/ditolak pada tahap {$tahap}.\nCatatan: {$catatan}"
+            FonnteService::formatDetail(
+                $pengajuan,
+                "PENGAJUAN {$kodeGlobal} (BENDAHARA)",
+                "Dikembalikan/ditolak oleh Bendahara pada tahap {$tahap}.",
+                $catatan
+            )
         );
 
         return $pengajuan;
@@ -73,13 +78,25 @@ class PencairanService
 
         FonnteService::notifyRole(
             'ppk',
-            "*PENGAJUAN SPP BARU*\nSPP untuk pengajuan '{$pengajuan->perihal}' telah diajukan oleh Bendahara dan menunggu proses PPK."
+            FonnteService::formatDetail(
+                $pengajuan,
+                'PENGAJUAN SPP BARU',
+                "SPP telah diajukan oleh Bendahara. Menunggu proses PPK.",
+                null,
+                array_filter(['No. SPP' => $data['no_spp'] ?? null, 'Tgl. SPP' => $data['tgl_spp'] ?? null])
+            )
         );
 
         // Pengaju dikabari setiap kali pengajuannya berpindah tangan.
         FonnteService::notifyPengaju(
             $pengajuan,
-            "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah disetujui Bendahara. SPP sudah diterbitkan dan kini menunggu proses PPK."
+            FonnteService::formatDetail(
+                $pengajuan,
+                'PENGAJUAN ANDA MAJU',
+                "SPP sudah diterbitkan Bendahara. Kini menunggu proses PPK.",
+                null,
+                array_filter(['No. SPP' => $data['no_spp'] ?? null])
+            )
         );
 
         return $pengajuan;
@@ -100,9 +117,16 @@ class PencairanService
         });
 
         $nominalCair = $tercatat->sum('nominal');
+        $fmtCair = 'Rp ' . number_format($nominalCair, 0, ',', '.');
         FonnteService::notifyPengaju(
             $pengajuan,
-            "*DANA TELAH DICAIRKAN*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah berhasil dicairkan sejumlah Rp " . number_format($nominalCair, 0, ',', '.')
+            FonnteService::formatDetail(
+                $pengajuan,
+                'DANA TELAH DICAIRKAN',
+                "Pembayaran langsung (UP/TUP) berhasil dicairkan.",
+                null,
+                ['Nominal Cair' => $fmtCair, 'Metode' => 'UP / TUP']
+            )
         );
 
         return $pengajuan;
@@ -144,9 +168,16 @@ class PencairanService
         });
 
         $nominalCair = $tercatat->sum('nominal');
+        $fmtCair = 'Rp ' . number_format($nominalCair, 0, ',', '.');
         FonnteService::notifyPengaju(
             $pengajuan,
-            "*DANA LANJUTAN DICAIRKAN*\nPembayaran bertahap untuk pengajuan '{$pengajuan->perihal}' telah dicairkan sejumlah Rp " . number_format($nominalCair, 0, ',', '.')
+            FonnteService::formatDetail(
+                $pengajuan,
+                'DANA LANJUTAN DICAIRKAN',
+                "Pembayaran bertahap berhasil dicairkan.",
+                null,
+                ['Nominal Cair (termin ini)' => $fmtCair]
+            )
         );
 
         return $pengajuan;
@@ -173,12 +204,24 @@ class PencairanService
 
         FonnteService::notifyRole(
             ['ppspm', 'bendahara'],
-            "*PERSETUJUAN PPK*\nPengajuan '{$pengajuan->perihal}' telah disetujui PPK. Menunggu penerbitan SPM atau Pencairan."
+            FonnteService::formatDetail(
+                $pengajuan,
+                'PERSETUJUAN PPK',
+                "Disetujui PPK. Menunggu penerbitan SPM oleh PPSPM.",
+                null,
+                array_filter(['No. SPM' => $data['no_spm'] ?? null, 'Tgl. SPM' => $data['tgl_spm'] ?? null])
+            )
         );
 
         FonnteService::notifyPengaju(
             $pengajuan,
-            "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah disetujui PPK dan kini menunggu proses PPSPM."
+            FonnteService::formatDetail(
+                $pengajuan,
+                'PENGAJUAN ANDA MAJU',
+                "Disetujui PPK. Kini menunggu proses PPSPM.",
+                null,
+                array_filter(['No. SPM' => $data['no_spm'] ?? null])
+            )
         );
 
         return $pengajuan;
@@ -207,12 +250,24 @@ class PencairanService
 
         FonnteService::notifyRole(
             'bendahara',
-            "*PROSES PPSPM SELESAI*\nSPM untuk pengajuan '{$pengajuan->perihal}' telah diajukan ke Kemenkeu oleh PPSPM. Menunggu konfirmasi SP2D/pencairan Bendahara."
+            FonnteService::formatDetail(
+                $pengajuan,
+                'PROSES PPSPM SELESAI',
+                "SPM telah diajukan ke Kemenkeu oleh PPSPM. Menunggu konfirmasi SP2D/pencairan Bendahara.",
+                null,
+                array_filter(['No. SPM' => $data['no_spm'] ?? null, 'Tgl. SPM' => $data['tgl_spm'] ?? null])
+            )
         );
 
         FonnteService::notifyPengaju(
             $pengajuan,
-            "*PENGAJUAN ANDA MAJU*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah diajukan ke Kemenkeu oleh PPSPM dan kini menunggu konfirmasi pencairan dari Bendahara."
+            FonnteService::formatDetail(
+                $pengajuan,
+                'PENGAJUAN ANDA MAJU',
+                "Telah diajukan ke Kemenkeu oleh PPSPM. Menunggu konfirmasi pencairan dari Bendahara.",
+                null,
+                array_filter(['No. SPM' => $data['no_spm'] ?? null])
+            )
         );
 
         return $pengajuan;
@@ -238,9 +293,20 @@ class PencairanService
         });
 
         $nominalCair = $tercatat->sum('nominal');
+        $fmtCair = 'Rp ' . number_format($nominalCair, 0, ',', '.');
         FonnteService::notifyPengaju(
             $pengajuan,
-            "*DANA TELAH DICAIRKAN*\nPengajuan Anda terkait '{$pengajuan->perihal}' telah berhasil dicairkan sejumlah Rp " . number_format($nominalCair, 0, ',', '.')
+            FonnteService::formatDetail(
+                $pengajuan,
+                'DANA TELAH DICAIRKAN',
+                "Konfirmasi pencairan LS berhasil.",
+                null,
+                array_filter([
+                    'Nominal Cair' => $fmtCair,
+                    'No. SP2D' => $data['no_sp2d'] ?? null,
+                    'Tgl. SP2D' => $data['tgl_sp2d'] ?? null,
+                ])
+            )
         );
 
         return $pengajuan;

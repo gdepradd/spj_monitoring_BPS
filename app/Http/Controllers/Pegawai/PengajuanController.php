@@ -229,7 +229,11 @@ class PengajuanController extends Controller
                 'nama_penerima' => $request->nama_penerima,
                 'catatan_pengaju' => $request->catatan_pengaju,
             ]);
-            \App\Services\FonnteService::notifyRole('verifikator', "*PENGAJUAN BARU*\nAda pengajuan baru dari {$pengaju->nama_lengkap}.\nPerihal: {$pengajuan->perihal}\nNominal: Rp " . number_format($pengajuan->total_nominal, 0, ',', '.') . "\nMohon untuk segera diverifikasi.");
+            \App\Services\FonnteService::notifyRole('verifikator', \App\Services\FonnteService::formatDetail(
+                $pengajuan,
+                'PENGAJUAN BARU',
+                "Pengajuan baru dari {$pengaju->nama_lengkap}. Mohon segera diverifikasi."
+            ));
 
             $this->simpanPenerima($pengajuan, $request->input('penerima', []));
 
@@ -422,7 +426,11 @@ class PengajuanController extends Controller
 
         FonnteService::notifyRole(
             'verifikator',
-            "*REVISI PENGAJUAN DIKIRIM*\nPengajuan '{$pengajuan->perihal}' dari " . auth()->user()->nama_lengkap . " telah direvisi dan dikirim kembali untuk ditinjau ulang."
+            FonnteService::formatDetail(
+                $pengajuan,
+                'REVISI PENGAJUAN DIKIRIM',
+                "Pengajuan telah direvisi oleh " . auth()->user()->nama_lengkap . " dan dikirim kembali untuk ditinjau ulang."
+            )
         );
 
         return redirect()->route('pengajuan.index')->with('success', 'Pengajuan berhasil diperbaiki dan dikembalikan ke pemeriksa terakhir.');

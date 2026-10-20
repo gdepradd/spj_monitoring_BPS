@@ -68,4 +68,40 @@ class FonnteService
             self::send($targets, $message);
         }
     }
+    public static function formatDetail(Pengajuan $pengajuan, string $judul, string $statusTeks, ?string $catatan = null, array $infoTambahan = []): string
+    {
+        $nominal = "Rp " . number_format($pengajuan->total_nominal, 0, ',', '.');
+        $pengaju = $pengajuan->user->nama_lengkap ?? $pengajuan->user->name ?? '-';
+        $tim = $pengajuan->tim_pengaju ?? '-';
+        $tgl = \Carbon\Carbon::parse($pengajuan->tanggal_pengajuan)->format('d/m/Y');
+
+        // Perihal ditampilkan lebih ringkas agar pesan tidak terlalu panjang.
+        $perihal = \Illuminate\Support\Str::limit($pengajuan->keterangan ?? $pengajuan->perihal ?? '-', 120, '...');
+
+        $pesan = "*[{$judul}]*\n\n"
+            . "*Detail Pengajuan:*\n"
+            . "• No. Pengajuan: *{$pengajuan->no_pengajuan}*\n"
+            . "• Tgl. Pengajuan: {$tgl}\n"
+            . "• Pengaju: {$pengaju} ({$tim})\n"
+            . "• Perihal: {$perihal}\n"
+            . "• Total Nominal: *{$nominal}*\n";
+
+        // Jika ada info tambahan seperti No SPP, No SPM, Nominal Cair, dll.
+        if (!empty($infoTambahan)) {
+            $pesan .= "\n*Informasi Proses:*\n";
+            foreach ($infoTambahan as $label => $nilai) {
+                if (!empty($nilai)) {
+                    $pesan .= "• {$label}: *{$nilai}*\n";
+                }
+            }
+        }
+
+        $pesan .= "\n*Status:* {$statusTeks}\n";
+
+        if (!empty($catatan) && $catatan !== '-') {
+            $pesan .= "*Catatan:* _{$catatan}_\n";
+        }
+
+        return $pesan;
+    }
 }
